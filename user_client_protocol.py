@@ -117,6 +117,7 @@ def pack_change_file(location: str, data: bytes):
 
 
 
+
 if __name__ == '__main__':
     path = 'T:\public\יב\ophir\Reflection\עיצוב.docx'
     with open(path, 'rb') as f:
