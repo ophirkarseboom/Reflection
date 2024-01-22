@@ -136,5 +136,4 @@ def pack_key(key):
     :param key: a symmetrical key
     :return: packed str
     """
-    opcode = '99'
-    return f'{opcode}{key}'
+    return b'99'+key
