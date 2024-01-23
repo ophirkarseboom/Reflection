@@ -2,10 +2,11 @@ import socket
 import threading
 import sys
 import time
-from encryption import symmetrical_encryption
-from encryption import asymmetric_encryption
-from protocols import general_client_protocol
+from Project.encryption import symmetrical_encryption
+from Project.encryption import asymmetric_encryption
+from Project.protocols import general_client_protocol
 import queue
+from Project.protocols import user_client_protocol
 
 
 class ClientComm:
@@ -59,22 +60,23 @@ class ClientComm:
         """
 
         self.symmetric = symmetrical_encryption.SymmetricalEncryption()
-        print('to_send: ' + str(general_client_protocol.pack_key(self.symmetric.key)))
         self.send(general_client_protocol.pack_key(self.symmetric.key), public_key)
 
 
     def send(self, data, receiver_key=None):
         """
         sending data to server
+        :param is_file: sending a file or not
         :param data: data to send
         :param receiver_key: if using asymmetric encryption using receiver key
         :return:
         """
-
+        print(f'sending: {data}')
         if receiver_key:
             data = self.a_encrypt.encrypt_msg(data, receiver_key)
         elif self.symmetric:
             data = self.symmetric.encrypt(data)
+            print(f'sending encrypted: {data}')
         else:
             sys.exit("couldn't set up key exchange")
 
@@ -88,8 +90,12 @@ class ClientComm:
 
 if __name__ == '__main__':
     rcv_q = queue.Queue()
-    server = ClientComm('127.0.0.1', 2500, rcv_q, 6)
-    server.send('hello world')
+    server = ClientComm('127.0.0.1', 2500, rcv_q, 8)
+    file_name = r'C:\cyber\reflection\Project\comms\g2.jpg'
+    with open(file_name, 'rb') as f:
+        b = f.read()
+    server.send(user_client_protocol.pack_change_file(file_name, len(b)))
+    server.send(b)
     while True:
         if not rcv_q.empty():
             print(rcv_q.get())

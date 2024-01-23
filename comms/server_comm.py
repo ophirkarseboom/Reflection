@@ -2,9 +2,9 @@ import select
 import socket
 import threading
 import queue
-from encryption import asymmetric_encryption
-from encryption import symmetrical_encryption
-from protocols import server_protocol
+from Project.encryption import asymmetric_encryption
+from Project.encryption import symmetrical_encryption
+from Project.protocols import server_protocol
 
 
 
@@ -21,6 +21,7 @@ class ServerComm:
         self.open_clients = {}
         self.a_encrypt = asymmetric_encryption.AsymmetricEncryption()
         self.is_running = False
+        self.receiving_files = []
         threading.Thread(target=self._main_loop).start()
 
     def _main_loop(self):
@@ -40,6 +41,8 @@ class ServerComm:
                     continue
 
                 # exist client
+                if current_socket in self.receiving_files:
+                    continue
                 try:
                     length = int(current_socket.recv(self.send_len).decode())
                     data = current_socket.recv(length)
@@ -50,9 +53,12 @@ class ServerComm:
                     # exchanged keys already
                     if current_socket in self.open_clients:
                         encryption = self.open_clients[current_socket][1]
+                        print(self.receiving_files)
                         data = encryption.decrypt(data)
 
                     if data[:2] in self.file_receive_opcodes:
+                        print('yessssssssssssssss!')
+                        self.receiving_files.append(current_socket)
                         threading.Thread(target=self._receive_file(current_socket, data))
 
                     else:
@@ -61,7 +67,52 @@ class ServerComm:
 
 
     def _receive_file(self, client, header):
-        pass
+        """
+        gets socket of client and header of file, receives file
+        :param client: socket of client
+        :param header: header of file
+        :return: None
+        """
+        header = server_protocol.unpack(header)
+        print(header)
+        print(len(header))
+        if len(header) == 2:
+            location, data_len = header[1]
+            if data_len.isdigit():
+                data_len = int(data_len)
+                file_is_ok = True
+                file = bytearray()
+                while len(file) < data_len and file_is_ok:
+
+                    size = data_len - len(file)
+                    if size > 1024:
+                        try:
+                            file.extend(client.recv(1024))
+                        except Exception as e:
+                            self.disconnect_client(client)
+                            print(str(e))
+                            file_is_ok = False
+
+                    else:
+                        try:
+                            file.extend(client.recv(size))
+                        except Exception as e:
+                            self.disconnect_client(client)
+                            print(str(e))
+                            file_is_ok = False
+
+                if file_is_ok:
+
+                    file = bytes(file)
+                    print(file)
+                    file = self.open_clients[client][1].decrypt(file, True)
+                    with open(location+'1', 'wb') as picture:
+                        picture.write(file)
+
+                    self.rcv_q.put(self.open_clients[client][0], header+','+file)
+
+        if client in self.receiving_files:
+            self.receiving_files.remove(client)
 
     def disconnect_client(self, ip):
         """
@@ -89,6 +140,8 @@ class ServerComm:
             print(f'{self.open_clients[client][0]} - disconnected')
             del self.open_clients[client]
 
+        if client in self.receiving_files:
+            self.receiving_files.remove(client)
         client.close()
 
     def _key_exchange(self, client, ip):
@@ -158,7 +211,7 @@ class ServerComm:
 
 if __name__ == '__main__':
     msg_q = queue.Queue()
-    server = ServerComm(2500, msg_q, 6)
-    while True:
-        if not msg_q.empty():
-            print(msg_q.get())
+    server = ServerComm(2500, msg_q, 8)
+    # while True:
+    #     if not msg_q.empty():
+    #         print(msg_q.get())
