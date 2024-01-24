@@ -1,10 +1,12 @@
+import base64
+from protocols import general_client_protocol
 import select
 import socket
 import threading
 import queue
-from Project.encryption import asymmetric_encryption
-from Project.encryption import symmetrical_encryption
-from Project.protocols import server_protocol
+from encryption import asymmetric_encryption
+from encryption import symmetrical_encryption
+from protocols import server_protocol
 
 
 
@@ -73,43 +75,43 @@ class ServerComm:
         :param header: header of file
         :return: None
         """
-        header = server_protocol.unpack(header)
-        print(header)
-        print(len(header))
-        if len(header) == 2:
-            location, data_len = header[1]
-            if data_len.isdigit():
-                data_len = int(data_len)
-                file_is_ok = True
-                file = bytearray()
-                while len(file) < data_len and file_is_ok:
 
-                    size = data_len - len(file)
-                    if size > 1024:
-                        try:
-                            file.extend(client.recv(1024))
-                        except Exception as e:
-                            self.disconnect_client(client)
-                            print(str(e))
-                            file_is_ok = False
+        try:
+            data_len = int(client.recv(self.send_len).decode())
+        except Exception as e:
+            print('error in receiving file:', str(e))
 
-                    else:
-                        try:
-                            file.extend(client.recv(size))
-                        except Exception as e:
-                            self.disconnect_client(client)
-                            print(str(e))
-                            file_is_ok = False
+        else:
+            file_is_ok = True
+            file = bytearray()
 
-                if file_is_ok:
+            # receiving file in parts
+            while len(file) < data_len and file_is_ok:
 
-                    file = bytes(file)
-                    print(file)
-                    file = self.open_clients[client][1].decrypt(file, True)
-                    with open(location+'1', 'wb') as picture:
-                        picture.write(file)
+                size = data_len - len(file)
+                if size > 1024:
+                    try:
+                        file.extend(client.recv(1024))
+                    except Exception as e:
+                        self.disconnect_client(client)
+                        print('error in receiving file:', str(e))
+                        file_is_ok = False
 
-                    self.rcv_q.put(self.open_clients[client][0], header+','+file)
+                else:
+                    try:
+                        file.extend(client.recv(size))
+                    except Exception as e:
+                        self.disconnect_client(client)
+                        print('error in receiving file:', str(e))
+                        file_is_ok = False
+
+            if file_is_ok:
+
+                file = bytes(file)
+                print(file)
+                file = self.open_clients[client][1].decrypt(file, True)
+                file = base64.b64encode(file).decode()
+                self.rcv_q.put((self.open_clients[client][0], str(header+','+file)))
 
         if client in self.receiving_files:
             self.receiving_files.remove(client)
@@ -194,7 +196,7 @@ class ServerComm:
             print(f'sending to {ip}:', data)
             if encrypt and sock in self.open_clients:
                 encryption = self.open_clients[sock][1]
-                data = encryption.encrypt_msg(data)
+                data = encryption.encrypt(data)
 
             try:
                 sock.send(str(len(data)).zfill(self.send_len).encode())
@@ -212,6 +214,15 @@ class ServerComm:
 if __name__ == '__main__':
     msg_q = queue.Queue()
     server = ServerComm(2500, msg_q, 8)
-    # while True:
-    #     if not msg_q.empty():
-    #         print(msg_q.get())
+    file_name = r'C:\cyber\reflection\Project\comms\cat.jpg'
+    with open(file_name, 'rb') as f:
+        b = f.read()
+
+
+    while True:
+        if not msg_q.empty():
+
+            data = msg_q.get()
+            print(f'sending {data[0]}')
+            server.send(data[0], general_client_protocol.pack_status_open_file(True))
+            server.send(data[0], b)

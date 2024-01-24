@@ -105,7 +105,7 @@ def pack_do_open_file(location: str):
     return f'{opcode}{location}'
 
 
-def pack_change_file(location: str, data_len):
+def pack_change_file(location: str):
     """
     builds message by protocol and return packed str
     :param data_len: len of file
@@ -113,7 +113,7 @@ def pack_change_file(location: str, data_len):
     :return: packed str
     """
     opcode = '18'
-    return f'{opcode}{location},{data_len}'
+    return f'{opcode}{location}'
 
 
 
