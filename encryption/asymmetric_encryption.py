@@ -43,12 +43,15 @@ class AsymmetricEncryption:
 
 
     def get_public_key(self):
-
+        """
+        returns public key
+        :return: public key
+        """
         return self.public_key
 
 
 if __name__ == '__main__':
-    from classes import asymmetric_encryption
+    from encryption import asymmetric_encryption
 
     encryption = asymmetric_encryption.AsymmetricEncryption()
     msg = 'hello'   # limit 245
