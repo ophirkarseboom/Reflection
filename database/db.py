@@ -1,5 +1,5 @@
 import sqlite3
-
+from encryption import symmetrical_encryption
 
 class Db:
     def __init__(self):
@@ -8,6 +8,7 @@ class Db:
         self.curr = None
         self.users_tbl = "user_pass"
         self.mac_tbl = "user_mac"
+        self.encryption = symmetrical_encryption.SymmetricalEncryption()
         self._create_db()
 
     def _create_db(self):
@@ -60,7 +61,7 @@ class Db:
         else:
             print(self.users_tbl)
             sql = "INSERT INTO " + self.users_tbl + " VALUES(?,?)"
-            self.curr.execute(sql, (username, password,))
+            self.curr.execute(sql, (username, self.encryption.hash(password),))
             self.conn.commit()
 
         return flag
@@ -98,7 +99,7 @@ class Db:
         else:
             sql = "UPDATE " + self.users_tbl\
                   + " SET password = ? WHERE user = ?"
-            self.curr.execute(sql, (password, username))
+            self.curr.execute(sql, (self.encryption.hash(password), username))
             self.conn.commit()
         return flag
 

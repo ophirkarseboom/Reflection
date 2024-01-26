@@ -194,3 +194,4 @@ def pack_public_key(public_key):
     :return: packed str
     """
     return b'98'+public_key
+
