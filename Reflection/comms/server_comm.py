@@ -1,13 +1,13 @@
 import base64
-from protocols import general_client_protocol
-import select
+import queue
 import socket
 import threading
-import queue
-from encryption import asymmetric_encryption
-from encryption import symmetrical_encryption
-from protocols import server_protocol
 
+import select
+from Reflection.encryption import asymmetric_encryption
+from Reflection.encryption import symmetrical_encryption
+from Reflection.protocols import general_client_protocol
+from Reflection.protocols import server_protocol
 
 
 class ServerComm:
@@ -129,7 +129,7 @@ class ServerComm:
             if ip in self.open_clients:
                 ip = self.open_clients[client][0]
 
-        self.rcv_q.put(('close', ip))
+        self.rcv_q.put((ip, 'close'))
         self._disconnect_client(client)
 
     def _disconnect_client(self, client):
@@ -144,7 +144,9 @@ class ServerComm:
 
         if client in self.receiving_files:
             self.receiving_files.remove(client)
-        client.close()
+
+        if client:
+            client.close()
 
     def _key_exchange(self, client, ip):
         """

@@ -1,13 +1,14 @@
-import socket
-import threading
-import sys
-import time
-from encryption import symmetrical_encryption
-from encryption import asymmetric_encryption
-from protocols import general_client_protocol
-import queue
-from protocols import user_client_protocol
 import base64
+import queue
+import socket
+import sys
+import threading
+import time
+
+from Reflection.encryption import asymmetric_encryption
+from Reflection.encryption import symmetrical_encryption
+from Reflection.protocols import general_client_protocol
+from Reflection.protocols import user_client_protocol
 
 
 class ClientComm:

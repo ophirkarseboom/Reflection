@@ -1,8 +1,13 @@
-from comms import client_comm
 import queue
 import threading
-from protocols import user_client_protocol as protocol
 
+from Reflection.comms import client_comm
+from Reflection.protocols import user_client_protocol as protocol
+from uuid import getnode
+
+def get_mac_address():
+    """ returns  mac address"""
+    return ':'.join(['{:02x}'.format((getnode() >> i) & 0xff) for i in range(0,8*6,8)][::-1])
 
 def rcv_comm(q):
     """
@@ -10,7 +15,7 @@ def rcv_comm(q):
     :param : client comm
     """
     while True:
-        data = protocol.unpack(rcv_q.get())
+        data = protocol.unpack(q.get())
         if not data:
             print('got None from protocol')
             continue
@@ -28,28 +33,52 @@ def handle_status_register(vars):
     :return: None
     """
     success = vars[0]
-    if success:
+    if success == 'ok':
         print('registered')
     else:
         print('could not register')
 
+def handle_status_connect(vars):
+    """
+    gets status and shows user what happened
+    :param vars: success or failure
+    :return: None
+    """
+    success = vars[0]
+    if success == 'ok':
+        print('you are signed in')
+    else:
+        print('could not sign in')
+
+
+
 
 def do_register(username, password):
     """
-    gets username and password and sends it to server by protocol
+    gets username and password and sends it to server by protocol to register
     :param username: username
     :param password: password
     :return: None
     """
     to_send = protocol.pack_register(username, password)
     client.send(to_send)
-    print('hi')
+
+def do_connect(username, password):
+    """
+    gets username and password and sends it to server by protocol to sign in
+    :param username: username
+    :param password: password
+    :return: None
+    """
+    to_send = protocol.pack_sign_in(username, password, get_mac_address())
+    client.send(to_send)
 
 if __name__ == '__main__':
     rcv_q = queue.Queue()
     client = client_comm.ClientComm('127.0.0.1', 2000, rcv_q, 6)
-    commands = {'2': handle_status_register}
-    threading.Thread(target=rcv_comm(client_comm), daemon=True).start()
-    do_register('yotam_king', '1234')
+
+    commands = {'02': handle_status_register, '04': handle_status_connect}
+    threading.Thread(target=rcv_comm,args=(rcv_q,), daemon=True).start()
+    do_connect('imri1234', '1234')
     while True:
         pass

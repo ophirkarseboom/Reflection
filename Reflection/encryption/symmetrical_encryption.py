@@ -1,12 +1,11 @@
 
-from Crypto.Random import get_random_bytes
 import base64
-
-import Crypto.Util.Padding
-from Crypto.Cipher import AES
-from Crypto import Random
 import hashlib
 
+import Crypto.Util.Padding
+from Crypto import Random
+from Crypto.Cipher import AES
+from Crypto.Random import get_random_bytes
 
 
 class SymmetricalEncryption:
@@ -67,13 +66,14 @@ class SymmetricalEncryption:
         """
         return Crypto.Util.Padding.unpad(s, 16, style='pkcs7')
 
-
-    def hash(self, data):
+    @staticmethod
+    def hash(data):
         """
         gets data and hashes it
         :param data: data
         :return: data hashed
         """
+        data = bytes(str(data), 'utf-8')
         return hashlib.sha256(data).digest()
 
 

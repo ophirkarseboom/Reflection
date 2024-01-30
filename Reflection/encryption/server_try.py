@@ -1,7 +1,7 @@
 import socket
-import sys
-from encryption import symmetrical_encryption
+
 from encryption import asymmetric_encryption
+from encryption import symmetrical_encryption
 
 server = socket.socket()
 

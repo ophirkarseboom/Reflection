@@ -37,7 +37,7 @@ def pack_sign_in(username: str, password: str, mac: str):
     :param mac: str
     :return: packed str
     """
-    opcode = '01'
+    opcode = '03'
     return f'{opcode}{username},{password},{mac}'
 
 

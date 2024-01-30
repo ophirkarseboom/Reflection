@@ -1,5 +1,7 @@
 import sqlite3
-from encryption import symmetrical_encryption
+
+from Reflection.encryption import symmetrical_encryption
+
 
 class Db:
     def __init__(self):
@@ -13,7 +15,7 @@ class Db:
 
     def _create_db(self):
         """
-        connect to DB and create tables if they do not exists
+        connect to DB and create tables if they do not exist
         :return:
         """
         self.conn = sqlite3.connect(self.db_name)
@@ -113,7 +115,7 @@ class Db:
         if self._username_exists(username):
             sql = "SELECT password FROM " + self.users_tbl + " WHERE user = ?"
             self.curr.execute(sql, (username,))
-            password = self.curr.fetchone()
+            password = self.curr.fetchone()[0]
             return password
 
     def get_macs(self, username):
@@ -142,4 +144,5 @@ class Db:
 
 if __name__ == '__main__':
     db = Db()
+    print(db.add_user('yotam_king', '1234'))
     print(db.get_users('mac8'))
