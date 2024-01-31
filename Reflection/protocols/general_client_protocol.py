@@ -1,3 +1,5 @@
+import os
+
 def unpack(data: str):
     """
     parsing by protocol and returns a tuple: (opcode, [params])
@@ -14,10 +16,24 @@ def unpack(data: str):
         return opcode, parsed
 
 
+
+def pack_file_tree(path: str):
+
+    """
+    builds message by protocol and returns packed str
+    :param path: location
+    :return: packed str
+    """
+    packed = '20'
+    for part in os.walk(path):
+        part = f'{part[0]}?{part[1]}?{part[2]}\n'
+        packed += part
+
+    return packed
 def pack_mac(mac: str):
     """
     builds message by protocol and returns packed str
-    :param mac: str
+    :param mac: mac address
     :return: packed str
     """
     opcode = '29'

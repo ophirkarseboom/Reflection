@@ -1,3 +1,5 @@
+import ast
+
 def unpack(data: str):
     """
     parsing by protocol and returns a tuple: (opcode, [params])
@@ -9,9 +11,24 @@ def unpack(data: str):
         opcode = data[:2]
         data = data[2:]
 
+        # if got file tree
         if opcode == '05':
-            parsed = ''
-            # handle got file treed TBD
+            folders = {}
+            lines = data.split('\n')[:-1]
+            for line in lines:
+                sep_line = line.split('?')
+                directory = sep_line[0]
+                try:
+                    dirs = ast.literal_eval(sep_line[1])
+                    files = ast.literal_eval(sep_line[2])
+                except Exception as e:
+                    print(f'in unpacking file tree: {str(e)}')
+                    break
+                dirs.append(',')
+                dirs.extend(files)
+                folders[directory] = dirs
+
+            parsed = [folders]
         else:
             parsed = data.split(',')
 

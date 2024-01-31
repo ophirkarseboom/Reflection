@@ -1,3 +1,5 @@
+import os
+import ast
 def unpack(data: str):
     """
     parsing by protocol and returns a tuple: (opcode, [params])
@@ -8,9 +10,24 @@ def unpack(data: str):
         opcode = data[:2]
         data = data[2:]
 
+        # if got file tree
         if opcode == '20':
-            parsed = ''
-            # handle got file treed TBD
+            folders = {}
+            lines = data.split('\n')[:-1]
+            for line in lines:
+                sep_line = line.split('?')
+                directory = sep_line[0]
+                try:
+                    dirs = ast.literal_eval(sep_line[1])
+                    files = ast.literal_eval(sep_line[2])
+                except Exception as e:
+                    print(f'in unpacking file tree: {str(e)}')
+                    break
+                dirs.append(',')
+                dirs.extend(files)
+                folders[directory] = dirs
+
+            parsed = [folders]
         else:
             parsed = data.split(',')
 
@@ -132,16 +149,26 @@ def pack_do_remove(folder: str):
     return f'30{folder}'
 
 
-def pack_ask_file_system():
+def pack_ask_file_Tree():
     """
     :return: protocol for asking file system
     """
     return '31'
 
 
-def pack_send_file_system():
-    pass
-    # TBD
+def pack_send_file_tree(path: str):
+
+    """
+    builds message by protocol and returns packed str
+    :param path: location
+    :return: packed str
+    """
+    packed = '05'
+    for part in os.walk(path):
+        part = f'{part[0]}?{part[1]}?{part[2]}\n'
+        packed += part
+
+    return packed
 
 
 def pack_do_rename(location: str, new_name: str):
