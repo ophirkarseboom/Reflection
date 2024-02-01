@@ -145,4 +145,5 @@ class Db:
 if __name__ == '__main__':
     db = Db()
     print(db.add_user('yotam_king', '1234'))
-    print(db.get_users('mac8'))
+    print(db.get_users('m13414'))
+

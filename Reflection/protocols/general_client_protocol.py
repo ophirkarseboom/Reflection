@@ -16,6 +16,13 @@ def unpack(data: str):
         return opcode, parsed
 
 
+def pack_client_type(client_type: str):
+    """
+    builds message by protocol and returns packed str
+    :param client_type: the client type
+    :return: packed str
+    """
+    return f'35{client_type}'
 
 def pack_file_tree(path: str):
 

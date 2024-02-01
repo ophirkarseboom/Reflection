@@ -12,12 +12,15 @@ from Reflection.protocols import user_client_protocol
 
 
 class ClientComm:
+
+    main_server_port = 2000
     file_receive_opcodes = ('17', '18')
-    def __init__(self, server_ip, port, rcv_q, send_len):
+    def __init__(self, server_ip, port, rcv_q, send_len, client_type=None):
         self.send_len = send_len
         self.server_ip = server_ip
         self.port = port
         self.rcv_q = rcv_q
+        self.client_type = client_type
         self.server = socket.socket()
         self.a_encrypt = asymmetric_encryption.AsymmetricEncryption()
         self.symmetric = None
@@ -105,7 +108,16 @@ class ClientComm:
 
         self.symmetric = symmetrical_encryption.SymmetricalEncryption()
         self.send(general_client_protocol.pack_key(self.symmetric.key), public_key)
+        if self.port == self.main_server_port and self.client_type:
+            self._send_client_type()
 
+
+
+    def _send_client_type(self):
+        """
+        sends server client type
+        """
+        self.send(general_client_protocol.pack_client_type(self.client_type))
 
     def send(self, data, receiver_key=None):
         """

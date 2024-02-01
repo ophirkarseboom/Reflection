@@ -12,6 +12,7 @@ from Reflection.protocols import server_protocol
 
 class ServerComm:
 
+    main_server_port = 2000
     file_receive_opcodes = ('17', '18')
     def __init__(self, port, rcv_q, send_len):
 
@@ -55,11 +56,9 @@ class ServerComm:
                     # exchanged keys already
                     if current_socket in self.open_clients:
                         encryption = self.open_clients[current_socket][1]
-                        print(self.receiving_files)
                         data = encryption.decrypt(data)
 
                     if data[:2] in self.file_receive_opcodes:
-                        print('yessssssssssssssss!')
                         self.receiving_files.append(current_socket)
                         threading.Thread(target=self._receive_file(current_socket, data))
 
@@ -152,7 +151,7 @@ class ServerComm:
         """
         exchanging keys with client, puts client in open clients at the end
         :param client: client socket
-        :param ip:
+        :param ip: ip address
         :return:
         """
         self.send(client, server_protocol.pack_public_key(self.a_encrypt.get_public_key()), False)
@@ -164,7 +163,36 @@ class ServerComm:
             self.disconnect_client(client)
         else:
             data = self.a_encrypt.decrypt_msg(data)
-            self.open_clients[client] = (ip, symmetrical_encryption.SymmetricalEncryption(data[2:]))
+            self.open_clients[client] = [ip, symmetrical_encryption.SymmetricalEncryption(data[2:])]
+
+            # main server
+            if self.port == self.main_server_port:
+                self._get_client_type(client, ip)
+
+    def _get_client_type(self, client, ip):
+        """
+        receives client type from client
+        :param client: socket of client
+        :param ip: ip of client
+        :return: None
+        """
+        try:
+            length = int(client.recv(self.send_len).decode())
+            data = client.recv(length)
+            print('data:', data)
+        except Exception as e:
+            print("error in key_exchange: " + str(e))
+            self.disconnect_client(client)
+        else:
+            encryption = self.open_clients[client][1]
+            data = encryption.decrypt(data)
+            typ = data[-1]
+            if typ != 'G' and typ != 'U':
+                self.disconnect_client(client)
+            else:
+                self.open_clients[client][0] = (ip, typ)
+                print('finished transferring client type')
+
 
 
 
@@ -177,6 +205,7 @@ class ServerComm:
         client = None
         for soc in self.open_clients.keys():
             if self.open_clients[soc][0] == ip:
+
                 client = soc
                 break
         return client
@@ -184,12 +213,12 @@ class ServerComm:
     def send(self, ip, data, encrypt=True):
         """
         sending ip a msg
-        :param ip: the ip to send to
+        :param ip: the ip to send to and general or user
         :param data: data to send
         :param encrypt: to encrypt data or not
         :return: None
         """
-        if type(ip).__name__ == 'str':
+        if type(ip).__name__ == 'str' or type(ip).__name__ == 'tuple':
             sock = self._find_socket_by_ip(ip)
         else:
             sock = ip

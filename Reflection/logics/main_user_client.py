@@ -75,10 +75,12 @@ def do_connect(username, password):
 
 if __name__ == '__main__':
     rcv_q = queue.Queue()
-    client = client_comm.ClientComm('127.0.0.1', 2000, rcv_q, 6)
+    server_ip = '192.168.4.96'
+    port = 2000
+    client = client_comm.ClientComm(server_ip, port, rcv_q, 6, 'U')
 
     commands = {'02': handle_status_register, '04': handle_status_connect}
-    threading.Thread(target=rcv_comm,args=(rcv_q,), daemon=True).start()
-    do_connect('imri1234', '1234')
+    threading.Thread(target=rcv_comm, args=(rcv_q,), daemon=True).start()
+    do_connect('ophir', '12345')
     while True:
         pass

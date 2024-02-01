@@ -35,6 +35,19 @@ def unpack(data: str):
 
 
 
+def pack_status_mac(status: bool):
+    """
+    gets a boolean that tells if action worked or not and returns the packed str
+    :param status: boolean (success of failure)
+    :return: packed str
+    """
+    packed = '34'
+    if status:
+        packed += 'ok'
+    else:
+        packed += 'no'
+
+    return packed
 def pack_status_register(status: bool):
     """
     gets a boolean that tells if action worked or not and returns the packed str
