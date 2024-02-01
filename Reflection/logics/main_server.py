@@ -85,6 +85,11 @@ def handle_sign_in(user_ip: str, vars: list):
         server_comm.send(user_ip, protocol.pack_status_login(False))
 
 
+
+def transition_file_tree(get_ip, send_ip):
+
+
+
 def handle_got_mac(client_ip: str, vars: list):
     """
     get mac from ip adds it to ip_mac and ip to user_comps and sends status back

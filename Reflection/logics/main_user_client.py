@@ -24,8 +24,6 @@ def rcv_comm(q):
         opcode, params = data
         commands[opcode](params)
 
-
-
 def handle_status_register(vars):
     """
     gets status and shows user what happened
@@ -82,5 +80,6 @@ if __name__ == '__main__':
     commands = {'02': handle_status_register, '04': handle_status_connect}
     threading.Thread(target=rcv_comm, args=(rcv_q,), daemon=True).start()
     do_connect('ophir', '12345')
+
     while True:
         pass
