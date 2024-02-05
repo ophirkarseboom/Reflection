@@ -55,9 +55,6 @@ for a in os.walk(cwd):
     to_send += a
 
 
-
-print(to_send)
-
 #client side
 folders = {}
 lines = to_send.split('\n')[:-1]
@@ -71,6 +68,7 @@ for line in lines:
     dirs.extend(files)
     folders[directory] = dirs
 
+print(folders)
 
 last_dir = deque()
 cwd = list(folders.keys())[0]

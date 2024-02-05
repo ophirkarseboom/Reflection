@@ -4,6 +4,8 @@ from Reflection.comms import server_comm
 from Reflection.database import db
 from Reflection.protocols import server_protocol as protocol
 from Reflection.encryption import symmetrical_encryption
+import os
+
 
 
 def handle_disconnect(client_ip:str, called_by_server_comm: bool):
@@ -75,6 +77,7 @@ def handle_sign_in(user_ip: str, vars: list):
                 if ip_mac[ip] == mac:
                     user_comps[user_ip].append(ip)
                     # call transition_file_tree
+                    server_comm.send(ip, protocol.pack_ask_file_Tree(f'{user}\\{ip}'))
 
         print(f'user:{user},mac:{user_mac}')
         print('adding_mac:', db.add_user_mac(user, user_mac))
@@ -86,9 +89,28 @@ def handle_sign_in(user_ip: str, vars: list):
 
 
 
-def transition_file_tree(get_ip, send_ip):
+def handle_got_file_tree(got_ip, vars: list):
+    """
 
+    :param got_ip: the ip got file tree from
+    :param vars: file tree got from got_ip
+    :return: None
+    """
 
+    file_tree = vars[0]
+    got_ok = True
+    if len(vars) == 1 and '?' in file_tree:
+        user_to_send = os.path.basename(file_tree[:file_tree.index('?')])
+        ip_to_send = username_ip[user_to_send]
+        if ip_to_send in user_comps and got_ip in user_comps[ip_to_send]:
+            server_comm.send(ip_to_send, protocol.pack_send_file_tree(file_tree, got_ip))
+        else:
+            got_ok = False
+    else:
+        got_ok = False
+
+    if not got_ok:
+        handle_disconnect(got_ip, False)
 
 def handle_got_mac(client_ip: str, vars: list):
     """
@@ -111,6 +133,11 @@ def handle_got_mac(client_ip: str, vars: list):
             if ip in user_comps:
                 user_comps[ip].append(client_ip)
 
+                # get user by ip
+                user = next(filter(lambda item: item[1] == ip, username_ip.items()), None)
+
+                server_comm.send(client_ip, protocol.pack_ask_file_Tree(user))
+
     server_comm.send(client_ip, protocol.pack_status_mac(has_users))
 
 
@@ -119,7 +146,7 @@ if __name__ == '__main__':
     rcv_q = queue.Queue()
     server_port = 2000
     server_comm = server_comm.ServerComm(server_port, rcv_q, 6)
-    commands = {'01': handle_register, '03': handle_sign_in, '29': handle_got_mac}
+    commands = {'01': handle_register, '03': handle_sign_in, '20': handle_got_file_tree, '29': handle_got_mac}
     ip_mac = {}
     user_comps = {}
     username_ip = {}
@@ -142,4 +169,5 @@ if __name__ == '__main__':
         if opcode in commands:
             commands[opcode](ip, params)
         else:
+            print('opcode is not on list')
             handle_disconnect(ip, False)

@@ -10,26 +10,26 @@ def unpack(data: str):
         opcode = data[:2]
         data = data[2:]
 
-        # if got file tree
-        if opcode == '20':
-            folders = {}
-            lines = data.split('\n')[:-1]
-            for line in lines:
-                sep_line = line.split('?')
-                directory = sep_line[0]
-                try:
-                    dirs = ast.literal_eval(sep_line[1])
-                    files = ast.literal_eval(sep_line[2])
-                except Exception as e:
-                    print(f'in unpacking file tree: {str(e)}')
-                    break
-                dirs.append(',')
-                dirs.extend(files)
-                folders[directory] = dirs
-
-            parsed = [folders]
-        else:
-            parsed = data.split(',')
+        # # if got file tree
+        # if opcode == '20':
+        #     folders = {}
+        #     lines = data.split('\n')[:-1]
+        #     for line in lines:
+        #         sep_line = line.split('?')
+        #         directory = sep_line[0]
+        #         try:
+        #             dirs = ast.literal_eval(sep_line[1])
+        #             files = ast.literal_eval(sep_line[2])
+        #         except Exception as e:
+        #             print(f'in unpacking file tree: {str(e)}')
+        #             break
+        #         dirs.append(',')
+        #         dirs.extend(files)
+        #         folders[directory] = dirs
+        #
+        #     parsed = [folders]
+        # else:
+        parsed = data.split(',')
 
         return opcode, parsed
 
@@ -48,6 +48,8 @@ def pack_status_mac(status: bool):
         packed += 'no'
 
     return packed
+
+
 def pack_status_register(status: bool):
     """
     gets a boolean that tells if action worked or not and returns the packed str
@@ -162,26 +164,21 @@ def pack_do_remove(folder: str):
     return f'30{folder}'
 
 
-def pack_ask_file_Tree():
+def pack_ask_file_Tree(folder: str):
     """
     :return: protocol for asking file system
     """
-    return '31'
+    return f'31{folder}'
 
 
-def pack_send_file_tree(path: str):
+def pack_send_file_tree(file_tree: str, ip_sent_from:str):
 
     """
     builds message by protocol and returns packed str
-    :param path: location
+    :param file_tree: the file tree
     :return: packed str
     """
-    packed = '05'
-    for part in os.walk(path):
-        part = f'{part[0]}?{part[1]}?{part[2]}\n'
-        packed += part
-
-    return packed
+    return f'05{file_tree}*{ip_sent_from}'
 
 
 def pack_do_rename(location: str, new_name: str):

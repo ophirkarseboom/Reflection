@@ -121,7 +121,7 @@ class ServerComm:
         :param ip: ip to disconnect
         :return: None
         """
-        if type(ip).__name__ == 'str':
+        if type(ip).__name__ == 'str' or type(ip).__name__ == 'tuple':
             client = self._find_socket_by_ip(ip)
         else:
             client = ip
@@ -145,6 +145,7 @@ class ServerComm:
             self.receiving_files.remove(client)
 
         if client:
+            print(client)
             client.close()
 
     def _key_exchange(self, client, ip):
