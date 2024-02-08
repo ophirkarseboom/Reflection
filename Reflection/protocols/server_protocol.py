@@ -82,10 +82,12 @@ def pack_status_login(status: bool):
     return packed
 
 
-def pack_status_create(status: bool):
+def pack_status_create(status: bool, path: str, typ: str):
     """
     gets a boolean that tells if action worked or not and returns the packed str
     :param status: boolean (success of failure)
+    :param path: path of creation
+    :param typ: type of creation
     :return: packed str
     """
     packed = '07'
@@ -94,13 +96,15 @@ def pack_status_create(status: bool):
     else:
         packed += 'no'
 
-    return packed
+    return f'{packed},{path},{typ}'
 
 
-def pack_status_rename(status: bool):
+def pack_status_rename(status: bool, path: str, new_name: str):
     """
     gets a boolean that tells if action worked or not and returns the packed str
     :param status: boolean (success of failure)
+    :param path: path of file
+    :param new_name:
     :return: packed str
     """
     packed = '09'
