@@ -14,7 +14,6 @@ def unpack(data: str):
         # if got file tree
         if opcode == '05':
             folders = {}
-            data, ip_got = data.split('*')
             lines = data.split('\n')[:-1]
             for line in lines:
                 sep_line = line.split('?')
@@ -29,7 +28,7 @@ def unpack(data: str):
                 dirs.extend(files)
                 folders[directory] = dirs
 
-            parsed = [folders, ip_got]
+            parsed = [folders]
         else:
             parsed = data.split(',')
 

@@ -1,4 +1,4 @@
-import os
+from Reflection.file_stuff.file_handler import FileHandler
 
 def unpack(data: str):
     """
@@ -31,12 +31,9 @@ def pack_file_tree(path: str):
     :param path: location
     :return: packed str
     """
-    packed = '20'
-    for part in os.walk(path):
-        part = f'{part[0]}?{part[1]}?{part[2]}\n'
-        packed += part
+    opcode = '20'
+    return f'{opcode}{FileHandler.get_path_tree(path)}'
 
-    return packed
 def pack_mac(mac: str):
     """
     builds message by protocol and returns packed str

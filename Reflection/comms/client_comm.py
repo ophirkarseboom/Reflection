@@ -119,6 +119,7 @@ class ClientComm:
         """
         self.send(general_client_protocol.pack_client_type(self.client_type))
 
+
     def send(self, data, receiver_key=None):
         """
         sending data to server
@@ -131,7 +132,6 @@ class ClientComm:
             data = self.a_encrypt.encrypt_msg(data, receiver_key)
         elif self.symmetric:
             data = self.symmetric.encrypt(data)
-            print(f'sending encrypted: {data}')
         else:
             sys.exit("couldn't set up key exchange")
 

@@ -69,15 +69,16 @@ def handle_sign_in(user_ip: str, vars: list):
     hashed_pass = symmetrical_encryption.SymmetricalEncryption.hash(password)
     if db_pass == hashed_pass:
         server_comm.send(user_ip, protocol.pack_status_login(True))
+
         macs_worked_on = db.get_macs(user)
-        user_comps[user_ip] = []
+        user_comps[user_ip] = [user_ip]
         username_ip[user] = user_ip
         for mac in macs_worked_on:
             for ip in ip_mac:
                 if ip_mac[ip] == mac:
                     user_comps[user_ip].append(ip)
                     # call transition_file_tree
-                    server_comm.send(ip, protocol.pack_ask_file_Tree(f'{user}\\{ip}'))
+                    server_comm.send(ip, protocol.pack_ask_file_Tree(f'{user}\\{ip[0]}'))
 
         print(f'user:{user},mac:{user_mac}')
         print('adding_mac:', db.add_user_mac(user, user_mac))
@@ -96,20 +97,28 @@ def handle_got_file_tree(got_ip, vars: list):
     :param vars: file tree got from got_ip
     :return: None
     """
-
     file_tree = vars[0]
     got_ok = True
     if len(vars) == 1 and '?' in file_tree:
-        user_to_send = os.path.basename(file_tree[:file_tree.index('?')])
-        ip_to_send = username_ip[user_to_send]
-        if ip_to_send in user_comps and got_ip in user_comps[ip_to_send]:
-            server_comm.send(ip_to_send, protocol.pack_send_file_tree(file_tree, got_ip))
+        user_to_send = file_tree.split('\\')[2].split('?')[0]
+        print('user_to_send:', user_to_send)
+        if user_to_send in username_ip:
+            ip_to_send = username_ip[user_to_send]
+            print('to_send:', ip_to_send)
+        else:
+            got_ok = False
+            ip_to_send = None
+
+        print('got_ip:', got_ip)
+        if got_ok and ip_to_send in user_comps and got_ip in user_comps[ip_to_send]:
+            server_comm.send(ip_to_send, protocol.pack_send_file_tree(file_tree))
         else:
             got_ok = False
     else:
         got_ok = False
 
     if not got_ok:
+        print('error in getting file tree')
         handle_disconnect(got_ip, False)
 
 def handle_got_mac(client_ip: str, vars: list):
@@ -134,9 +143,8 @@ def handle_got_mac(client_ip: str, vars: list):
                 user_comps[ip].append(client_ip)
 
                 # get user by ip
-                user = next(filter(lambda item: item[1] == ip, username_ip.items()), None)
-
-                server_comm.send(client_ip, protocol.pack_ask_file_Tree(user))
+                user = next(filter(lambda item: item[1] == ip, username_ip.items()), None)[0]
+                server_comm.send(client_ip, protocol.pack_ask_file_Tree(f'{user}\\{client_ip[0]}'))
 
     server_comm.send(client_ip, protocol.pack_status_mac(has_users))
 

@@ -11,7 +11,10 @@ def unpack(data: str):
         data = data[2:]
 
         # # if got file tree
-        # if opcode == '20':
+        if opcode == '20':
+            parsed = [data]
+        else:
+            parsed = data.split(',')
         #     folders = {}
         #     lines = data.split('\n')[:-1]
         #     for line in lines:
@@ -29,7 +32,6 @@ def unpack(data: str):
         #
         #     parsed = [folders]
         # else:
-        parsed = data.split(',')
 
         return opcode, parsed
 
@@ -171,14 +173,14 @@ def pack_ask_file_Tree(folder: str):
     return f'31{folder}'
 
 
-def pack_send_file_tree(file_tree: str, ip_sent_from:str):
+def pack_send_file_tree(file_tree: str):
 
     """
     builds message by protocol and returns packed str
     :param file_tree: the file tree
     :return: packed str
     """
-    return f'05{file_tree}*{ip_sent_from}'
+    return f'05{file_tree}'
 
 
 def pack_do_rename(location: str, new_name: str):

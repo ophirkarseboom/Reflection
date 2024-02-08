@@ -7,38 +7,233 @@ from uuid import getnode
 from collections import deque
 import os
 from Reflection.file_stuff.file_handler import FileHandler
-import socket
 from Reflection.settings import Settings
+import time
+import netifaces as ni
+
+def get_my_ip():
+    """
+    :return: computer's ip
+    """
+    return ni.ifaddresses(ni.interfaces()[1])[ni.AF_INET][0]['addr']
 
 class MainUserClient:
 
     def __init__(self):
-
+        self.folders = {}
         self.server_rcv_q = Queue()
-        self.my_ip = socket.gethostbyname(socket.gethostname())
+        self.my_ip = get_my_ip()
+        print(self.my_ip)
         self.client = client_comm.ClientComm(Settings.server_ip, Settings.server_port, self.server_rcv_q, 6, 'U')
         self.user_name = 'ophir'
-        threading.Thread(target=rcv_comm, args=(self.server_rcv_q,), daemon=True).start()
-        do_connect(self.user_name, '12345')
+        self.file_handler = FileHandler(self.user_name, self.my_ip)
+        self.handle_tree = Queue()
+        print(self.my_ip)
+
+        threading.Thread(target=self.rcv_comm, args=(self.server_rcv_q,), daemon=True).start()
+        self.do_connect('12345')
+
+
+
+    def rcv_comm(self, q):
+        """
+        gets data from server and calls functions accordingly
+        :param : client comm
+        """
+
+        commands = {'02': self.handle_status_register, '04': self.handle_status_login, '05': self.handle_got_file_tree}
+        while True:
+            data = protocol.unpack(q.get())
+            if not data:
+                print('got None from protocol')
+                continue
+
+            print('data from server:', data)
+            opcode, params = data
+
+
+            commands[opcode](params)
+
+
+    def navigate_folders(self):
+        """
+        gets file tree and lets user navigate through it
+        :return: None
+        """
+
+        last_dir = deque()
+        self.folders = {self.file_handler.user_path: [',']}
+        cwd = self.file_handler.user_path
+        time.sleep(0.3)
+        while True:
+            # combine new tree
+            while not self.handle_tree.empty():
+                new_folders = self.handle_tree.get()
+                # new_folder_key, new_folder_value = next(iter(new_folders.items()))
+                # old_folder_key, old_folder_value = next(iter(folders.items()))
+                # if old_folder_key == new_folder_key:
+                #     going_through_folders = True
+                #     for element in old_folder_value:
+                #         if element == ',':
+                #             going_through_folders = False
+                #
+                #         elif element in new_folder_value:
+                #             pass
+                #         elif going_through_folders:
+                #             new_folder_value.insert(0, element)
+                #         else:
+                #             new_folder_value.append(element)
+
+                self.folders.update(new_folders)
+
+                ip_path = list(new_folders.keys())[0]
+                ip = os.path.basename(ip_path)
+                self.folders[self.file_handler.user_path].insert(0, ip)
+
+                # else:
+                #     print_nice('something went wrong in adding file tree', 'bold')
+
+            print(self.folders)
+            print_directory(cwd, self.folders)
+            print()
+            print_nice('enter something to do: ', 'blue')
+            to_do = input().split()
+            command = to_do[0]
+            param = None
+
+            if len(to_do) > 1:
+                param = to_do[1]
+
+            path = cwd
+            if not cwd.endswith('\\'):
+                path += '\\'
+
+            if command == 'exit':
+                break
+            elif command == 'in':
+                path += param
+                if path in self.folders.keys():
+                    last_dir.append(cwd)
+                    cwd = path
+            elif command == 'back':
+                if len(last_dir) == 0:
+                    print_nice("this is root directory, you can't got back", 'red')
+                    print()
+                else:
+                    cwd = last_dir.pop()
+
+            elif command == 'create':
+                path += param
+                print(self.file_handler.is_local(path))
+
+
+            else:
+                print_nice('wrong input try again', 'red')
+                print()
+
+
+    def create(self, path, typ, name):
+        """
+        gets path and typ, creates it
+        :param path: path of object to create
+        :param typ: type of object
+        :param name: name of object
+        :return: None
+        """
+        if self.file_handler.is_local(path):
+            pass
+            # create local and add
+        else:
+            pass
+            # ask server to add and add
+
+
+
+
+    def handle_status_register(self, vars):
+        """
+        gets status and shows user what happened
+        :param vars: success or failure
+        :return: None
+        """
+        success = vars[0]
+        if success == 'ok':
+            print('registered')
+        else:
+            print('could not register')
+
+
+    def handle_status_login(self, vars):
+        """
+        gets status, shows user what happened also creates hidden root directory if success and starts navigate folder
+        :param vars: success or failure
+        :return: None
+        """
+        success = vars[0]
+        if success == 'ok':
+            print('you are signed in')
+            self.file_handler.create_root()
+            thread_handle_tree = threading.Thread(target=self.navigate_folders, daemon=True)
+            thread_handle_tree.start()
+
+        else:
+            print('could not sign in')
+
+
+    def handle_got_file_tree(self, vars):
+        """
+        gets file tree and start interaction with user about files
+        :param vars: file tree
+        :return: None
+        """
+        self.handle_tree.put(vars[0])
+        # need to do grpahic stuff
+
+
+
+
+    def do_register(self, password):
+        """
+        gets username and password and sends it to server by protocol to register
+        :param password: password
+        :return: None
+        """
+        to_send = protocol.pack_register(self.user_name, password)
+        self.client.send(to_send)
+
+
+    def do_connect(self, password):
+        """
+        gets username and password and sends it to server by protocol to sign in
+        :param password: password
+        :return: None
+        """
+        to_send = protocol.pack_sign_in(self.user_name, password, get_mac_address())
+        self.client.send(to_send)
+
 
 def print_nice(text, color):
     bold = '1m'
     red = '91m'
+    yellow = '93m'
     blue = '94m'
     if color == 'red':
         color = red
     elif color == 'bold':
         color = bold
+    elif color == 'yellow':
+        color = yellow
     elif color == 'blue':
         color = blue
     else:
         color = '0m'
+
     bold_text = f"\033[{color}" + text + "\033[0m"
     print(bold_text, end='\t')
 
 
 def print_directory(fold, folders):
-    print_nice(fold, 'red')
+    print_nice(fold, 'yellow')
     print()
     bold = True
     count = 0
@@ -61,175 +256,8 @@ def get_mac_address():
     """ returns  mac address"""
     return ':'.join(['{:02x}'.format((getnode() >> i) & 0xff) for i in range(0, 8 * 6, 8)][::-1])
 
-
-def rcv_comm(q):
-    """
-    gets data from server and calls functions accordingly
-    :param : client comm
-    """
-    # tmp
-    handle_tree = Queue()
-    thread_handle_tree = None
-    commands = {'02': handle_status_register, '04': handle_status_login, '05': handle_got_file_tree}
-    while True:
-
-        data = protocol.unpack(q.get())
-        if not data:
-            print('got None from protocol')
-            continue
-
-        print('data from server:', data)
-        opcode, params = data
-        # temporary
-        if opcode == '05':
-            handle_tree.put(params)
-            if not thread_handle_tree:
-                file_handler = FileHandler()
-
-                thread_handle_tree = threading.Thread(target=navigate_folders, args=(params ,handle_tree, file_handler,), daemon=True)
-                thread_handle_tree.start()
-
-        else:
-            commands[opcode](params)
-
-
-def navigate_folders(params, get_queue: Queue, file_handler: FileHandler):
-    """
-    gets file tree and lets user navigate through it
-    :param folders: dictionary that represents file tree
-    :return: None
-    """
-
-    last_dir = deque()
-    folders = params[0]
-    cwd = list(folders.keys())[0]
-    print(folders)
-    while True:
-        # combine new tree
-        if not get_queue.empty():
-            new_folders, got_ip = get_queue.get()
-            new_folder_key, new_folder_value = next(iter(new_folders.items()))
-            old_folder_key, old_folder_value = next(iter(folders.items()))
-            if old_folder_key == new_folder_key:
-                going_through_folders = True
-                for element in old_folder_value:
-                    if element == ',':
-                        going_through_folders = False
-
-                    elif element in new_folder_value:
-                        pass
-                    elif going_through_folders:
-                        new_folder_value.insert(0, element)
-                    else:
-                        new_folder_value.append(element)
-
-                folders.update(new_folders)
-
-
-            else:
-                print_nice('something went wrong in adding file tree', 'bold')
-
-        print_directory(cwd, folders)
-        print()
-        print_nice('enter something to do: ', 'blue')
-        to_do = input()
-
-
-
-        if cwd.endswith('\\'):
-            path = fr'{cwd}{to_do}'
-        else:
-            path = f'{cwd}\\{to_do}'
-
-        print('path:', path)
-        if to_do == 'exit':
-            break
-        elif path in folders.keys():
-            last_dir.append(cwd)
-            cwd = path
-        elif to_do == 'back':
-            if len(last_dir) == 0:
-                print_nice("this is root directory, you can't got back", 'red')
-                print()
-            else:
-                cwd = last_dir.pop()
-
-        else:
-            print_nice('wrong input try again', 'red')
-            print()
-
-
-
-def handle_status_register(vars):
-    """
-    gets status and shows user what happened
-    :param vars: success or failure
-    :return: None
-    """
-    success = vars[0]
-    if success == 'ok':
-        print('registered')
-    else:
-        print('could not register')
-
-
-def handle_status_login(vars):
-    """
-    gets status and shows user what happened
-    :param vars: success or failure
-    :return: None
-    """
-    success = vars[0]
-    if success == 'ok':
-        print('you are signed in')
-
-    else:
-        print('could not sign in')
-
-
-def handle_got_file_tree(vars):
-    """
-    gets file tree and start interaction with user about files
-    :param vars: file tree
-    :return: None
-    """
-    # need to do grpahic stuff
-    pass
-
-
-
-def do_register(username, password):
-    """
-    gets username and password and sends it to server by protocol to register
-    :param username: username
-    :param password: password
-    :return: None
-    """
-    to_send = protocol.pack_register(username, password)
-    client.send(to_send)
-
-
-def do_connect(username, password):
-    """
-    gets username and password and sends it to server by protocol to sign in
-    :param username: username
-    :param password: password
-    :return: None
-    """
-    to_send = protocol.pack_sign_in(username, password, get_mac_address())
-    client.send(to_send)
-
-
 if __name__ == '__main__':
 
-    rcv_q = Queue()
-    server_ip = '192.168.56.1'
-    my_ip = socket.gethostbyname(socket.gethostname())
-    port = 2000
-    client = client_comm.ClientComm(server_ip, port, rcv_q, 6, 'U')
-    user_name = 'ophir'
-    threading.Thread(target=rcv_comm, args=(rcv_q,), daemon=True).start()
-    do_connect(user_name, '12345')
-
+    MainUserClient()
     while True:
         pass
