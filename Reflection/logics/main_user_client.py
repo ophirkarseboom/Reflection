@@ -25,7 +25,7 @@ class MainUserClient:
         self.my_ip = get_my_ip()
         print(self.my_ip)
         self.client = client_comm.ClientComm(Settings.server_ip, Settings.server_port, self.server_rcv_q, 6, 'U')
-        self.user_name = 'ophir15'
+        self.user_name = 'ophir16'
         self.file_handler = FileHandler(self.user_name, self.my_ip)
         self.handle_tree = Queue()
         print(self.my_ip)
@@ -65,7 +65,6 @@ class MainUserClient:
         last_dir = deque()
         self.folders = {self.file_handler.user_path: [',']}
         cwd = self.file_handler.user_path
-        time.sleep(0.3)
         while True:
             # combine new tree
             while not self.handle_tree.empty():

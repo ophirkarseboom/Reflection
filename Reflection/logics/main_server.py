@@ -71,7 +71,7 @@ def handle_sign_in(user_ip: str, vars: list):
         server_comm.send(user_ip, protocol.pack_status_login(True))
 
         macs_worked_on = db.get_macs(user)
-        user_comps[user_ip] = [(user_ip[0], 'G')]
+        user_comps[user_ip] = []
         username_ip[user] = user_ip
 
         # adding to user comps
@@ -81,9 +81,11 @@ def handle_sign_in(user_ip: str, vars: list):
                     user_comps[user_ip].append(ip)
 
 
+
         # asking file tree from each mac
-        for ip in user_comps[user_ip]:
-            server_comm.send(ip, protocol.pack_ask_file_Tree(f'{user}\\{ip[0]}'))
+        if user_mac not in macs_worked_on:
+            server_comm.send((user_ip[0], 'G'), protocol.pack_ask_file_Tree(f'{user}\\{ip[0]}'))
+
 
         print(f'user:{user},mac:{user_mac}')
         print('adding_mac:', db.add_user_mac(user, user_mac))
