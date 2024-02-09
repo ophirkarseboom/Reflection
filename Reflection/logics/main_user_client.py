@@ -25,12 +25,13 @@ class MainUserClient:
         self.my_ip = get_my_ip()
         print(self.my_ip)
         self.client = client_comm.ClientComm(Settings.server_ip, Settings.server_port, self.server_rcv_q, 6, 'U')
-        self.user_name = 'ophir'
+        self.user_name = 'ophir15'
         self.file_handler = FileHandler(self.user_name, self.my_ip)
         self.handle_tree = Queue()
         print(self.my_ip)
 
         threading.Thread(target=self.rcv_comm, args=(self.server_rcv_q,), daemon=True).start()
+        self.do_register('12345')
         self.do_connect('12345')
 
 

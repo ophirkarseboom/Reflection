@@ -71,14 +71,19 @@ def handle_sign_in(user_ip: str, vars: list):
         server_comm.send(user_ip, protocol.pack_status_login(True))
 
         macs_worked_on = db.get_macs(user)
-        user_comps[user_ip] = [user_ip]
+        user_comps[user_ip] = [(user_ip[0], 'G')]
         username_ip[user] = user_ip
+
+        # adding to user comps
         for mac in macs_worked_on:
             for ip in ip_mac:
                 if ip_mac[ip] == mac:
                     user_comps[user_ip].append(ip)
-                    # call transition_file_tree
-                    server_comm.send(ip, protocol.pack_ask_file_Tree(f'{user}\\{ip[0]}'))
+
+
+        # asking file tree from each mac
+        for ip in user_comps[user_ip]:
+            server_comm.send(ip, protocol.pack_ask_file_Tree(f'{user}\\{ip[0]}'))
 
         print(f'user:{user},mac:{user_mac}')
         print('adding_mac:', db.add_user_mac(user, user_mac))
@@ -97,6 +102,7 @@ def handle_got_file_tree(got_ip, vars: list):
     :param vars: file tree got from got_ip
     :return: None
     """
+
     file_tree = vars[0]
     got_ok = True
     if len(vars) == 1 and '?' in file_tree:

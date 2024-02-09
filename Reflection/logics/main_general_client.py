@@ -1,5 +1,7 @@
 import queue
 import threading
+import time
+
 from Reflection.settings import Settings
 from Reflection.comms.client_comm import ClientComm
 from Reflection.protocols import general_client_protocol as protocol
@@ -56,7 +58,6 @@ def handle_status_mac(client: ClientComm, vars: list):
         print('sent mac successfully')
     else:
         print("a user didn't login through this computer")
-        sys.exit()
 
 
 def handle_asked_file_tree(client: ClientComm, vars: list):
@@ -70,7 +71,9 @@ def handle_asked_file_tree(client: ClientComm, vars: list):
     folder = vars[0]
     folder_path = f'{FileHandler.root}{folder}'
     print(folder_path)
+    time.sleep(1)
     if os.path.isdir(folder_path):
+        print('nice')
         client.send(protocol.pack_file_tree(folder_path))
 
 

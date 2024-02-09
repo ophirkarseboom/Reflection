@@ -1,9 +1,10 @@
 import ctypes
 import os
+from Reflection.settings import Settings
 
 
 class FileHandler:
-    root = 'D:\\reflection\\'
+    root = Settings.root
 
     def __init__(self, username: str, ip: str):
 
