@@ -6,10 +6,9 @@ from Reflection.settings import Settings
 class FileHandler:
     root = Settings.root
 
-    def __init__(self, username: str, ip: str):
+    def __init__(self, username: str):
 
         self.user_path = self.root + username + '\\'
-        self.ip = ip
 
     def create_root(self):
         """
@@ -18,7 +17,6 @@ class FileHandler:
         """
         FileHandler._create_hidden_dir(self.root)
         FileHandler.create_dir(self.user_path)
-        FileHandler.create_dir(f"{self.user_path}{self.ip}")
 
     def is_local(self, path):
         """

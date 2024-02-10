@@ -17,13 +17,10 @@ class MainUserClient:
     def __init__(self):
         self.folders = {}
         self.server_rcv_q = Queue()
-        self.my_ip = Settings.get_my_ip()
-        print(self.my_ip)
         self.client = client_comm.ClientComm(Settings.server_ip, Settings.server_port, self.server_rcv_q, 6, 'U')
-        self.user_name = 'ophir20'
-        self.file_handler = FileHandler(self.user_name, self.my_ip)
+        self.user_name = 'imri1'
+        self.file_handler = FileHandler(self.user_name)
         self.handle_tree = Queue()
-        print(self.my_ip)
 
         threading.Thread(target=self.rcv_comm, args=(self.server_rcv_q,), daemon=True).start()
         self.do_register('12345')
@@ -61,23 +58,11 @@ class MainUserClient:
         self.folders = {self.file_handler.user_path: [',']}
         cwd = self.file_handler.user_path
         while True:
+
             # combine new tree
             while not self.handle_tree.empty():
                 new_folders = self.handle_tree.get()
-                # new_folder_key, new_folder_value = next(iter(new_folders.items()))
-                # old_folder_key, old_folder_value = next(iter(folders.items()))
-                # if old_folder_key == new_folder_key:
-                #     going_through_folders = True
-                #     for element in old_folder_value:
-                #         if element == ',':
-                #             going_through_folders = False
-                #
-                #         elif element in new_folder_value:
-                #             pass
-                #         elif going_through_folders:
-                #             new_folder_value.insert(0, element)
-                #         else:
-                #             new_folder_value.append(element)
+
 
                 self.folders.update(new_folders)
 
@@ -85,8 +70,7 @@ class MainUserClient:
                 ip = os.path.basename(ip_path)
                 self.folders[self.file_handler.user_path].insert(0, ip)
 
-                # else:
-                #     print_nice('something went wrong in adding file tree', 'bold')
+
 
             print(self.folders)
             print_directory(cwd, self.folders)

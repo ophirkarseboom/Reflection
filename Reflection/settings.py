@@ -14,12 +14,6 @@ class Settings:
         """ returns  mac address"""
         return ':'.join(['{:02x}'.format((getnode() >> i) & 0xff) for i in range(0, 8 * 6, 8)][::-1])
 
-    @staticmethod
-    def get_my_ip():
-        """
-        :return: computer's ip
-        """
-        return ni.ifaddresses(ni.interfaces()[1])[ni.AF_INET][0]['addr']
 
 if __name__ == '__main__':
     print(Settings.server_ip)

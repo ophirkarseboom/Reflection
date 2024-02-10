@@ -10,28 +10,27 @@ def unpack(data: str):
         opcode = data[:2]
         data = data[2:]
 
-        # # if got file tree
+        # if got file tree
         if opcode == '20':
+            # folders = {}
+            # lines = data.split('\n')[:-1]
+            # for line in lines:
+            #     sep_line = line.split('?')
+            #     directory = sep_line[0]
+            #     try:
+            #         dirs = ast.literal_eval(sep_line[1])
+            #         files = ast.literal_eval(sep_line[2])
+            #     except Exception as e:
+            #         print(f'in unpacking file tree: {str(e)}')
+            #         break
+            #     dirs.append(',')
+            #     dirs.extend(files)
+            #     folders[directory] = dirs
+
             parsed = [data]
         else:
             parsed = data.split(',')
-        #     folders = {}
-        #     lines = data.split('\n')[:-1]
-        #     for line in lines:
-        #         sep_line = line.split('?')
-        #         directory = sep_line[0]
-        #         try:
-        #             dirs = ast.literal_eval(sep_line[1])
-        #             files = ast.literal_eval(sep_line[2])
-        #         except Exception as e:
-        #             print(f'in unpacking file tree: {str(e)}')
-        #             break
-        #         dirs.append(',')
-        #         dirs.extend(files)
-        #         folders[directory] = dirs
-        #
-        #     parsed = [folders]
-        # else:
+
 
         return opcode, parsed
 

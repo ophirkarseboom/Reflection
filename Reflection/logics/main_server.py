@@ -79,12 +79,12 @@ def handle_sign_in(user_ip: str, vars: list):
             for ip in ip_mac:
                 if ip_mac[ip] == mac:
                     user_comps[user_ip].append(ip)
-                    server_comm.send(ip, protocol.pack_ask_file_Tree(f'{user}\\{user_ip[0]}'))
+                    server_comm.send(ip, protocol.pack_ask_file_Tree(f'{user}'))
 
         # asking file tree from own user mac
         print('user_ip:', user_ip)
         if user_mac not in macs_worked_on:
-            server_comm.send((user_ip[0], 'G'), protocol.pack_ask_file_Tree(f'{user}\\{user_ip[0]}'))
+            server_comm.send((user_ip[0], 'G'), protocol.pack_ask_file_Tree(f'{user}'))
 
 
         print(f'user:{user},mac:{user_mac}')
@@ -113,13 +113,19 @@ def handle_got_file_tree(got_ip, vars: list):
         if user_to_send in username_ip:
             ip_to_send = username_ip[user_to_send]
             print('to_send:', ip_to_send)
+
+
         else:
             got_ok = False
             ip_to_send = None
 
-        print('got_ip:', got_ip)
 
         if got_ok and ip_to_send in user_comps and got_ip in user_comps[ip_to_send]:
+            # inserting ip got in file_tree
+            ip_to_insert = '\\' + got_ip[0]
+            file_tree = file_tree.replace(user_to_send, user_to_send + ip_to_insert)
+
+            # sending file tree to user
             server_comm.send(ip_to_send, protocol.pack_send_file_tree(file_tree))
         else:
             got_ok = False
