@@ -15,7 +15,7 @@ def get_my_ip():
     """
     :return: computer's ip
     """
-    return ni.ifaddresses(ni.interfaces()[1])[ni.AF_INET][0]['addr']
+    return ni.ifaddresses(ni.interfaces()[0])[ni.AF_INET][0]['addr']
 
 class MainUserClient:
 

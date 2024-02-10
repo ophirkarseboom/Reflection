@@ -1,5 +1,5 @@
 class Settings:
-    server_ip = '10.100.102.27'
+    server_ip = '192.168.243.90'
     server_port = 2000
     root = 'C:\\reflection\\'
 

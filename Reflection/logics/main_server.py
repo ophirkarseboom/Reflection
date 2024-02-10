@@ -79,12 +79,12 @@ def handle_sign_in(user_ip: str, vars: list):
             for ip in ip_mac:
                 if ip_mac[ip] == mac:
                     user_comps[user_ip].append(ip)
+                    server_comm.send(ip, protocol.pack_ask_file_Tree(f'{user}\\{user_ip[0]}'))
 
-
-
-        # asking file tree from each mac
+        # asking file tree from own user mac
+        print('user_ip:', user_ip)
         if user_mac not in macs_worked_on:
-            server_comm.send((user_ip[0], 'G'), protocol.pack_ask_file_Tree(f'{user}\\{ip[0]}'))
+            server_comm.send((user_ip[0], 'G'), protocol.pack_ask_file_Tree(f'{user}\\{user_ip[0]}'))
 
 
         print(f'user:{user},mac:{user_mac}')
