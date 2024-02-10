@@ -61,9 +61,9 @@ def handle_sign_in(user_ip: str, vars: list):
     """
 
     if len(vars) != 3:
-
         handle_disconnect(user_ip, False)
         return
+
     user, password, user_mac = vars
     db_pass = db.get_password(user)
     hashed_pass = symmetrical_encryption.SymmetricalEncryption.hash(password)
@@ -71,7 +71,7 @@ def handle_sign_in(user_ip: str, vars: list):
         server_comm.send(user_ip, protocol.pack_status_login(True))
 
         macs_worked_on = db.get_macs(user)
-        user_comps[user_ip] = []
+        user_comps[user_ip] = [(user_ip[0], 'G')]
         username_ip[user] = user_ip
 
         # adding to user comps
@@ -118,6 +118,7 @@ def handle_got_file_tree(got_ip, vars: list):
             ip_to_send = None
 
         print('got_ip:', got_ip)
+
         if got_ok and ip_to_send in user_comps and got_ip in user_comps[ip_to_send]:
             server_comm.send(ip_to_send, protocol.pack_send_file_tree(file_tree))
         else:

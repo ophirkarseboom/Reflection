@@ -12,15 +12,7 @@ from Reflection.file_stuff.file_handler import FileHandler
 import netifaces as ni
 
 
-def get_mac_address():
-    """ returns  mac address"""
-    return ':'.join(['{:02x}'.format((getnode() >> i) & 0xff) for i in range(0, 8 * 6, 8)][::-1])
 
-def get_my_ip():
-    """
-    :return: computer's ip
-    """
-    return ni.ifaddresses(ni.interfaces()[1])[ni.AF_INET][0]['addr']
 
 def rcv_comm(comm, q):
     """
@@ -43,7 +35,7 @@ def send_mac():
     """
     sends the mac to server
     """
-    to_send = protocol.pack_mac(get_mac_address())
+    to_send = protocol.pack_mac(Settings.get_mac_address())
     client.send(to_send)
 
 

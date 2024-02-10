@@ -11,21 +11,16 @@ from Reflection.settings import Settings
 import time
 import netifaces as ni
 
-def get_my_ip():
-    """
-    :return: computer's ip
-    """
-    return ni.ifaddresses(ni.interfaces()[0])[ni.AF_INET][0]['addr']
 
 class MainUserClient:
 
     def __init__(self):
         self.folders = {}
         self.server_rcv_q = Queue()
-        self.my_ip = get_my_ip()
+        self.my_ip = Settings.get_my_ip()
         print(self.my_ip)
         self.client = client_comm.ClientComm(Settings.server_ip, Settings.server_port, self.server_rcv_q, 6, 'U')
-        self.user_name = 'ophir16'
+        self.user_name = 'ophir20'
         self.file_handler = FileHandler(self.user_name, self.my_ip)
         self.handle_tree = Queue()
         print(self.my_ip)
