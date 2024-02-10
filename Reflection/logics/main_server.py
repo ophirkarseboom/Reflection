@@ -83,6 +83,7 @@ def handle_sign_in(user_ip: str, vars: list):
 
         # asking file tree from own user mac
         print('user_ip:', user_ip)
+        print()
         if user_mac not in macs_worked_on:
             server_comm.send((user_ip[0], 'G'), protocol.pack_ask_file_Tree(f'{user}'))
 
