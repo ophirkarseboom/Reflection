@@ -5,6 +5,7 @@ from Reflection.database import db
 from Reflection.protocols import server_protocol as protocol
 from Reflection.encryption import symmetrical_encryption
 import os
+from Reflection.file_stuff.file_handler import FileHandler
 
 
 
@@ -87,7 +88,6 @@ def handle_sign_in(user_ip: str, vars: list):
         if user_mac not in macs_worked_on:
             server_comm.send((user_ip[0], 'G'), protocol.pack_ask_file_Tree(f'{user}'))
 
-
         print(f'user:{user},mac:{user_mac}')
         print('adding_mac:', db.add_user_mac(user, user_mac))
         print('ip_mac:', ip_mac)
@@ -120,11 +120,9 @@ def handle_got_file_tree(got_ip, vars: list):
             got_ok = False
             ip_to_send = None
 
-
         if got_ok and ip_to_send in user_comps and got_ip in user_comps[ip_to_send]:
             # inserting ip got in file_tree
-            ip_to_insert = '\\' + got_ip[0]
-            file_tree = file_tree.replace(user_to_send, user_to_send + ip_to_insert)
+            file_tree = FileHandler.insert_ip(file_tree, user_to_send, got_ip[0])
 
             # sending file tree to user
             server_comm.send(ip_to_send, protocol.pack_send_file_tree(file_tree))
@@ -159,18 +157,62 @@ def handle_got_mac(client_ip: str, vars: list):
                 user_comps[ip].append(client_ip)
 
                 # get user by ip
-                user = next(filter(lambda item: item[1] == ip, username_ip.items()), None)[0]
+                user = get_key_by_value(username_ip, ip)
                 server_comm.send(client_ip, protocol.pack_ask_file_Tree(f'{user}\\{client_ip[0]}'))
 
     server_comm.send(client_ip, protocol.pack_status_mac(has_users))
 
 
+def got_create(got_ip: str, vars: str):
+    """
+    sending appropriate client to create object
+    :param got_ip: ip sent from
+    :param vars: location to create and typ of creation
+    :return: None
+    """
+
+    if len(vars) != 2:
+        print('wow')
+        handle_disconnect(got_ip, False)
+        return
+
+    location, typ = vars
+    user_got = get_key_by_value(username_ip, got_ip)
+    ip_to_send = FileHandler.extract_ip(user_got, location)
+    location = FileHandler.remove_ip(user_got, location)
+    server_comm.send(ip_to_send, protocol.pack_do_create(location, typ))
+
+def handle_status_create(got_ip: str, vars: str):
+    """
+    sending user if creation was success
+    :param got_ip: ip got from
+    :param vars: status, location, typ
+    :return: None
+    """
+    if len(vars) != 3:
+        handle_disconnect(got_ip, False)
+        return
+
+    status, location, typ = vars
+    username = location[location.index(FileHandler.root):location.index('\\')]
+    ip_to_send = username_ip[username]
+    location = FileHandler.insert_ip(location, username, ip_to_send)
+    server_comm.send(ip_to_send, protocol.pack_status_create(status, location, typ))
+
+
+def get_key_by_value(dic: dict, value: str):
+    """
+    gets value and returns key of value
+    :param value: value in dic
+    :return: key of value
+    """
+    return next(filter(lambda item: item[1] == value, dic.items()), None)[0]
 
 if __name__ == '__main__':
     rcv_q = queue.Queue()
     server_port = 2000
     server_comm = server_comm.ServerComm(server_port, rcv_q, 6)
-    commands = {'01': handle_register, '03': handle_sign_in, '20': handle_got_file_tree, '29': handle_got_mac}
+    commands = {'01': handle_register, '03': handle_sign_in, '06': got_create, '20': handle_got_file_tree, '29': handle_got_mac, '33': handle_status_create}
     ip_mac = {}
     user_comps = {}
     username_ip = {}

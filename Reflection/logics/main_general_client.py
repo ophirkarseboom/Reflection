@@ -19,7 +19,7 @@ def rcv_comm(comm, q):
     gets data from server and calls functions accordingly
     :param : client comm
     """
-    commands = {'34': handle_status_mac, '31': handle_asked_file_tree}
+    commands = { '31': handle_asked_file_tree, '32': handle_create, '34': handle_status_mac}
     while True:
         data = protocol.unpack(q.get())
         if not data:
@@ -29,6 +29,18 @@ def rcv_comm(comm, q):
         print('data from server:', data)
         opcode, params = data
         commands[opcode](comm, params)
+
+
+def handle_create(client: ClientComm, vars: list):
+    """
+    creates what server sent if possible and returns status
+    :param client: client comm
+    :param vars: location of creation and it's type
+    :return: None
+    """
+    location, typ = vars
+    status = FileHandler.create(location, typ)
+    client.send(protocol.pack_status_create(status, location, typ))
 
 
 def send_mac():

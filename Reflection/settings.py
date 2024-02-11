@@ -1,13 +1,24 @@
 import netifaces as ni
 from uuid import getnode
+import socket
 
 class Settings:
-    server_ip = '10.100.102.27'
+    server_ip = '192.168.4.96'
     server_port = 2000
-    root = 'C:\\reflection\\'
+    root = 'D:\\reflection\\'
 
 
 
+    @staticmethod
+    def get_ip():
+        """
+        returns ip
+        """
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
 
     @staticmethod
     def get_mac_address():

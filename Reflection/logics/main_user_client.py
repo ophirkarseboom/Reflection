@@ -18,7 +18,7 @@ class MainUserClient:
         self.folders = {}
         self.server_rcv_q = Queue()
         self.client = client_comm.ClientComm(Settings.server_ip, Settings.server_port, self.server_rcv_q, 6, 'U')
-        self.user_name = 'imri1'
+        self.user_name = 'yotam'
         self.file_handler = FileHandler(self.user_name)
         self.handle_tree = Queue()
 
@@ -79,7 +79,6 @@ class MainUserClient:
             to_do = input().split()
             command = to_do[0]
             param = None
-
             if len(to_do) > 1:
                 param = to_do[1]
 
@@ -102,16 +101,25 @@ class MainUserClient:
                     cwd = last_dir.pop()
 
             elif command == 'create':
-                path += param
-                print(self.file_handler.is_local(path))
-
+                self.create(path, param, to_do[2])
 
             else:
                 print_nice('wrong input try again', 'red')
                 print()
 
 
-    def create(self, path, typ, name):
+    def folders_add(self, path, name, typ):
+        if path.endswith('\\'):
+            path = path[:-1]
+        if typ == 'fld':
+            self.folders[f'{path}\\{name}'] = [',']
+            self.folders[path].insert(0, name)
+
+        else:
+            self.folders[path].append(f'{name}.{typ}')
+
+
+    def create(self, path, name, typ):
         """
         gets path and typ, creates it
         :param path: path of object to create
@@ -119,15 +127,29 @@ class MainUserClient:
         :param name: name of object
         :return: None
         """
+        local = self.file_handler.remove_ip(self.user_name, path)
+        print('local:', local)
         if self.file_handler.is_local(path):
-            pass
-            # create local and add
+            local = local + name
+            # do local stuff of creating file
+            self.file_handler.create(local, typ)
+            self.folders_add(path, name, typ)
         else:
-            pass
-            # ask server to add and add
+            self.client.send(protocol.pack_do_create(path + name, typ))
 
-
-
+    def handle_status_create(self, vars: list):
+        """
+        gets status of creation and shows user what happened
+        :param vars: status, location, type
+        :return: None
+        """
+        status, location, typ = vars
+        if status == 'ok':
+            name = os.path.basename(location)
+            path = location.replace(name, '')
+            self.folders_add(path, name, typ)
+        else:
+            print('could not register')
 
     def handle_status_register(self, vars):
         """

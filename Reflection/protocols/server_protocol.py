@@ -12,20 +12,7 @@ def unpack(data: str):
 
         # if got file tree
         if opcode == '20':
-            # folders = {}
-            # lines = data.split('\n')[:-1]
-            # for line in lines:
-            #     sep_line = line.split('?')
-            #     directory = sep_line[0]
-            #     try:
-            #         dirs = ast.literal_eval(sep_line[1])
-            #         files = ast.literal_eval(sep_line[2])
-            #     except Exception as e:
-            #         print(f'in unpacking file tree: {str(e)}')
-            #         break
-            #     dirs.append(',')
-            #     dirs.extend(files)
-            #     folders[directory] = dirs
+
 
             parsed = [data]
         else:
@@ -196,6 +183,16 @@ def pack_do_rename(location: str, new_name: str):
     opcode = '21'
     return f'{opcode}{location},{new_name}'
 
+
+def pack_do_create(location: str, typ: str):
+    """
+    gets location of file/folder and type to create, returns packed str that does it by protocol
+    :param location: location of file/folder
+    :param typ: type of file or folder
+    :return: packed str
+    """
+    opcode = '32'
+    return f'{opcode}{location},{typ}'
 
 def pack_do_delete(location: str):
     """

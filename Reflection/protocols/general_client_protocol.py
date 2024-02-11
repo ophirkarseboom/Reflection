@@ -44,10 +44,12 @@ def pack_mac(mac: str):
     return f'{opcode}{mac}'
 
 
-def pack_status_create(status: bool):
+def pack_status_create(status: bool, location: str, typ: str):
     """
     gets a boolean that tells if action worked or not and returns the packed str
     :param status: boolean (success of failure)
+    :param location: location of creation
+    :param typ: type of creation
     :return: packed str
     """
     packed = '33'
@@ -56,7 +58,7 @@ def pack_status_create(status: bool):
     else:
         packed += 'no'
 
-    return packed
+    return f'{packed},{location},{typ}'
 
 
 def pack_status_rename(status: bool):

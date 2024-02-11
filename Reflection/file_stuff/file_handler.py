@@ -7,7 +7,8 @@ class FileHandler:
     root = Settings.root
 
     def __init__(self, username: str):
-
+        self.my_ip = Settings.get_ip()
+        self.username = username
         self.user_path = self.root + username + '\\'
 
     def create_root(self):
@@ -16,7 +17,7 @@ class FileHandler:
         :return:
         """
         FileHandler._create_hidden_dir(self.root)
-        FileHandler.create_dir(self.user_path)
+        FileHandler.create(self.user_path, 'fld')
 
     def is_local(self, path):
         """
@@ -24,8 +25,79 @@ class FileHandler:
         :param path: path of dir
         :return: if path is local or not
         """
-        return path.startswith(self.user_path) and os.path.exists(path)
+        return path.startswith(self.user_path + self.my_ip) and os.path.exists(FileHandler.remove_ip(self.username, path))
 
+
+    @staticmethod
+    def insert_ip(path: str, username: str, ip: str):
+        """
+        gets username and path and inserts ip in it
+        :param username: username
+        :param path: path to insert into
+        :param ip: ip to insert
+        :return: path with ip in it
+        """
+        ip_to_insert = '\\' + ip
+        return path.replace(username, username + ip_to_insert)
+
+
+    @staticmethod
+    def extract_ip(username: str, path: str):
+        """
+        gets path and extracts ip out of it
+        :param path: path
+        :return: ip in path
+        """
+        ip = None
+        if username in path:
+            user_path_len = path.index(username) + len(username) + 1
+            if user_path_len < len(path):
+                ip = path[user_path_len:]
+                if '\\' in ip:
+                    ip = ip[:ip.index('\\')]
+
+        return ip
+
+    @staticmethod
+    def remove_ip(username, path: str):
+        """
+        gets path and removes ip out of it
+        :param path: path
+        :return: path without ip
+        """
+        if username in path:
+            user_path_len = path.index(username) + len(username) + 1
+            if user_path_len < len(path):
+                ip = path[user_path_len:]
+
+                if '\\' in ip:
+                    ip = '\\' + ip[:ip.index('\\')]
+
+                if ip in path:
+                    print('hi')
+                    path = path.replace(ip, '')
+
+        return path
+
+    @staticmethod
+    def create(path: str, typ: str):
+        """
+        gets path to create, creates it if does not exist
+        :param path: path to dir
+        :param typ: type of creation
+        :return: if created or not
+        """
+        created = True
+        if not os.path.exists(path):
+            if typ == 'fld':
+                os.mkdir(path)
+            else:
+                with open(f'{path}.{typ}', 'w') as fp:
+                    pass
+        else:
+            created = False
+
+        return created
 
     @staticmethod
     def _create_hidden_dir(path):
@@ -34,7 +106,7 @@ class FileHandler:
         :param path: path for dir
         :return: None
         """
-        FileHandler.create_dir(path)
+        FileHandler.create(path, 'fld')
         attrs = os.stat(path).st_file_attributes
         if not attrs & 2 == 2:
             # Get the file attributes
@@ -43,15 +115,6 @@ class FileHandler:
             ctypes.windll.kernel32.SetFileAttributesW(path, attrs | 2)
 
 
-    @staticmethod
-    def create_dir(path):
-        """
-        gets path to directory, creates it if does not exist
-        :param path: path to dir
-        :return: None
-        """
-        if not os.path.exists(path):
-            os.mkdir(path)
 
     @staticmethod
     def get_path_tree(path: str):
@@ -69,5 +132,5 @@ class FileHandler:
 
 
 if __name__ == '__main__':
-    a = FileHandler('ophir', '192.168.4.82')
+    a = FileHandler('ophir')
     print(a.is_local('T:\public\cyber\ophir\Reflection\Reflection\protocols\server_protocol.py'))
