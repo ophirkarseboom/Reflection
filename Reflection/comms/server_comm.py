@@ -8,11 +8,12 @@ from Reflection.encryption import asymmetric_encryption
 from Reflection.encryption import symmetrical_encryption
 from Reflection.protocols import general_client_protocol
 from Reflection.protocols import server_protocol
+from Reflection.settings import Settings
 
 
 class ServerComm:
 
-    main_server_port = 2000
+    main_server_port = Settings.server_port
     file_receive_opcodes = ('17', '18')
     def __init__(self, port, rcv_q, send_len):
 
@@ -224,7 +225,9 @@ class ServerComm:
         else:
             sock = ip
 
+        print('sock:', sock)
         if sock and self.is_running:
+
             print(f'sending to {ip}:', data)
             if encrypt and sock in self.open_clients:
                 encryption = self.open_clients[sock][1]

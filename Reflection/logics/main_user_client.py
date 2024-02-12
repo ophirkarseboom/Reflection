@@ -34,7 +34,7 @@ class MainUserClient:
         :param : client comm
         """
 
-        commands = {'02': self.handle_status_register, '04': self.handle_status_login, '05': self.handle_got_file_tree}
+        commands = {'02': self.handle_status_register, '04': self.handle_status_login, '05': self.handle_got_file_tree, '07': self.handle_status_create}
         while True:
             data = protocol.unpack(q.get())
             if not data:

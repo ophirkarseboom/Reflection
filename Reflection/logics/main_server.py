@@ -172,13 +172,14 @@ def got_create(got_ip: str, vars: str):
     """
 
     if len(vars) != 2:
-        print('wow')
+
         handle_disconnect(got_ip, False)
         return
 
     location, typ = vars
     user_got = get_key_by_value(username_ip, got_ip)
     ip_to_send = FileHandler.extract_ip(user_got, location)
+    ip_to_send = (ip_to_send, 'G')
     location = FileHandler.remove_ip(user_got, location)
     server_comm.send(ip_to_send, protocol.pack_do_create(location, typ))
 
@@ -194,9 +195,13 @@ def handle_status_create(got_ip: str, vars: str):
         return
 
     status, location, typ = vars
-    username = location[location.index(FileHandler.root):location.index('\\')]
+    print('location:', location)
+    username = location.replace(FileHandler.root, '')
+    username = username[:username.index('\\')]
+    print('user:', username)
+
     ip_to_send = username_ip[username]
-    location = FileHandler.insert_ip(location, username, ip_to_send)
+    location = FileHandler.insert_ip(location, username, got_ip[0])
     server_comm.send(ip_to_send, protocol.pack_status_create(status, location, typ))
 
 

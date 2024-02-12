@@ -10,6 +10,7 @@ import sys
 import os
 from Reflection.file_stuff.file_handler import FileHandler
 import netifaces as ni
+from Reflection.comms.server_comm import ServerComm
 
 
 
@@ -83,11 +84,17 @@ def handle_asked_file_tree(client: ClientComm, vars: list):
 
 if __name__ == '__main__':
     client_rcv_q = queue.Queue()
+    server_rcv_q = queue.Queue()
     server_ip = Settings.server_ip
     port = 2000
     client = ClientComm(server_ip, port, client_rcv_q, 6, 'G')
-
+    file_server = ServerComm(Settings.pear_port, server_rcv_q, 8)
+    
     threading.Thread(target=rcv_comm, args=(client, client_rcv_q,), daemon=True).start()
+    threading.Thread(target=rcv_comm, args=(file_server, server_rcv_q,), daemon=True).start()
+
+    # sending main server client's mac
     send_mac()
+
     while True:
         pass
