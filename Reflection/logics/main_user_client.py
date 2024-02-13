@@ -9,7 +9,6 @@ import os
 from Reflection.file_stuff.file_handler import FileHandler
 from Reflection.settings import Settings
 import time
-import netifaces as ni
 
 
 class MainUserClient:
@@ -21,12 +20,10 @@ class MainUserClient:
         self.user_name = 'yotam'
         self.file_handler = FileHandler(self.user_name)
         self.handle_tree = Queue()
-
+        self.ip_comm = {}
         threading.Thread(target=self.rcv_comm, args=(self.server_rcv_q,), daemon=True).start()
         self.do_register('12345')
         self.do_connect('12345')
-
-
 
     def rcv_comm(self, q):
         """
@@ -34,7 +31,8 @@ class MainUserClient:
         :param : client comm
         """
 
-        commands = {'02': self.handle_status_register, '04': self.handle_status_login, '05': self.handle_got_file_tree, '07': self.handle_status_create}
+        commands = {'02': self.handle_status_register, '04': self.handle_status_login, '05': self.handle_got_file_tree,
+                    '07': self.handle_status_create}
         while True:
             data = protocol.unpack(q.get())
             if not data:
@@ -44,9 +42,7 @@ class MainUserClient:
             print('data from server:', data)
             opcode, params = data
 
-
             commands[opcode](params)
-
 
     def navigate_folders(self):
         """
@@ -63,14 +59,11 @@ class MainUserClient:
             while not self.handle_tree.empty():
                 new_folders = self.handle_tree.get()
 
-
                 self.folders.update(new_folders)
 
                 ip_path = list(new_folders.keys())[0]
                 ip = os.path.basename(ip_path)
                 self.folders[self.file_handler.user_path].insert(0, ip)
-
-
 
             print(self.folders)
             print_directory(cwd, self.folders)
@@ -103,12 +96,29 @@ class MainUserClient:
             elif command == 'create':
                 self.create(path, param, to_do[2])
 
+            elif command == 'open':
+                self.open(path, param)
+
             else:
                 print_nice('wrong input try again', 'red')
                 print()
 
+    def open(self, path: str, name):
+        """
+        gets path of file with it's name and opens it
+        :param path: path of file
+        :param name:  name
+        return:
+        """
+        path += name
+        local = self.file_handler.remove_ip(self.user_name, path)
+        if self.file_handler.is_local(path):
+            os.system('start "" "' + local + '"')
+        else:
+            pass
 
     def folders_add(self, path, name, typ):
+
         if path.endswith('\\'):
             path = path[:-1]
         if typ == 'fld':
@@ -117,7 +127,6 @@ class MainUserClient:
 
         else:
             self.folders[path].append(f'{name}.{typ}')
-
 
     def create(self, path, name, typ):
         """
@@ -163,7 +172,6 @@ class MainUserClient:
         else:
             print('could not register')
 
-
     def handle_status_login(self, vars):
         """
         gets status, shows user what happened also creates hidden root directory if success and starts navigate folder
@@ -180,7 +188,6 @@ class MainUserClient:
         else:
             print('could not sign in')
 
-
     def handle_got_file_tree(self, vars):
         """
         gets file tree and start interaction with user about files
@@ -190,9 +197,6 @@ class MainUserClient:
         self.handle_tree.put(vars[0])
         # need to do grpahic stuff
 
-
-
-
     def do_register(self, password):
         """
         gets username and password and sends it to server by protocol to register
@@ -201,7 +205,6 @@ class MainUserClient:
         """
         to_send = protocol.pack_register(self.user_name, password)
         self.client.send(to_send)
-
 
     def do_connect(self, password):
         """
@@ -256,6 +259,7 @@ def print_directory(fold, folders):
 def get_mac_address():
     """ returns  mac address"""
     return ':'.join(['{:02x}'.format((getnode() >> i) & 0xff) for i in range(0, 8 * 6, 8)][::-1])
+
 
 if __name__ == '__main__':
 
