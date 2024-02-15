@@ -4,11 +4,15 @@ import socket
 import sys
 import threading
 import time
+import os
+
 
 from Reflection.encryption import asymmetric_encryption
 from Reflection.encryption import symmetrical_encryption
 from Reflection.protocols import general_client_protocol
 from Reflection.protocols import user_client_protocol
+from Reflection.file_stuff.file_handler import FileHandler
+from Reflection.settings import Settings
 
 
 class ClientComm:
@@ -24,6 +28,7 @@ class ClientComm:
         self.server = socket.socket()
         self.a_encrypt = asymmetric_encryption.AsymmetricEncryption()
         self.symmetric = None
+        self.my_ip = Settings.get_ip()
         threading.Thread(target=self._main_loop, daemon=True).start()
         time.sleep(0.3)
 
@@ -63,7 +68,7 @@ class ClientComm:
         :param header: header of file
         :return: None
         """
-
+        print('data:', header)
         try:
             data_len = int(self.server.recv(self.send_len).decode())
         except Exception as e:
@@ -93,10 +98,22 @@ class ClientComm:
 
             if file_is_ok:
                 file = bytes(file)
-                print(file)
                 file = self.symmetric.decrypt(file, True)
-                file = base64.b64encode(file).decode()
-                self.rcv_q.put(str(header + ',' + file))
+
+                print('header:', header)
+                path = header.split(',')[1]
+                name = '\\' + os.path.basename(path)
+                path = path.replace(name, '')
+                path.replace(FileHandler.root)
+                # creating folder for file
+                local_path = FileHandler.create(Settings.local_changes_path + path, 'fld')
+                FileHandler.create(path.replace(os.path.basename(path), '')[:-1], 'fld')
+
+                # creating file
+                with open(path, 'wb') as save:
+                    save.write(file)
+
+                self.rcv_q.put(f'{header[:2]}{path}')
 
 
     def _key_exchange(self, public_key):
@@ -151,8 +168,4 @@ if __name__ == '__main__':
         if not rcv_q.empty():
             data = rcv_q.get()
             data = user_client_protocol.unpack(data)
-            print('data:', data)
-            file = base64.b64decode(data[1][1])
-            print('file:', file)
-            with open('try5.jpg', 'wb') as picture:
-                picture.write(file)
+            os.system('start "" "' + data[0] + '"')

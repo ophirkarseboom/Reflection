@@ -4,7 +4,8 @@ import time
 
 from Reflection.settings import Settings
 from Reflection.comms.client_comm import ClientComm
-from Reflection.protocols import general_client_protocol as protocol
+from Reflection.protocols import general_client_protocol as client_protocol
+from Reflection.protocols import server_protocol
 from uuid import getnode
 import sys
 import os
@@ -17,20 +18,53 @@ from Reflection.comms.server_comm import ServerComm
 
 def rcv_comm(comm, q):
     """
-    gets data from server and calls functions accordingly
-    :param : client comm
+    gets data from server or clients and calls functions accordingly
+    :param comm: client or server comm
+    :param q: msg q
     """
-    commands = { '31': handle_asked_file_tree, '32': handle_create, '34': handle_status_mac}
+    commands = {'16': handle_open_file, '31': handle_asked_file_tree, '32': handle_create, '34': handle_status_mac, }
     while True:
-        data = protocol.unpack(q.get())
+        is_server = isinstance(comm, ServerComm)
+        if is_server:
+            ip, data = q.get()
+            data = server_protocol.unpack(data)
+        else:
+            ip = None
+            data = client_protocol.unpack(q.get())
         if not data:
             print('got None from protocol')
             continue
 
         print('data from server:', data)
-        opcode, params = data
-        commands[opcode](comm, params)
 
+        opcode, params = data
+        if is_server:
+            commands[opcode](ip, comm, params)
+        else:
+            commands[opcode](comm, params)
+
+
+def handle_open_file(got_ip: str, server: ServerComm, vars: list):
+    """
+    getting server comm and path of file to open and sends its data
+    :param server: server comm
+    :param vars: path
+    :return: None
+    """
+    if len(vars) != 1:
+        print('error in opening file')
+        return
+
+    path = vars[0]
+    if os.path.isfile(path):
+        with open(path, 'rb') as f:
+            file = f.read()
+
+        server.send(got_ip, client_protocol.pack_status_open_file(True, path))
+        server.send(got_ip, file)
+
+    else:
+        server.send(got_ip, client_protocol.pack_status_open_file(False))
 
 def handle_create(client: ClientComm, vars: list):
     """
@@ -41,14 +75,14 @@ def handle_create(client: ClientComm, vars: list):
     """
     location, typ = vars
     status = FileHandler.create(location, typ)
-    client.send(protocol.pack_status_create(status, location, typ))
+    client.send(client_protocol.pack_status_create(status, location, typ))
 
 
 def send_mac():
     """
     sends the mac to server
     """
-    to_send = protocol.pack_mac(Settings.get_mac_address())
+    to_send = client_protocol.pack_mac(Settings.get_mac_address())
     client.send(to_send)
 
 
@@ -79,7 +113,7 @@ def handle_asked_file_tree(client: ClientComm, vars: list):
     time.sleep(1)
     if os.path.isdir(folder_path):
         print('nice')
-        client.send(protocol.pack_file_tree(folder_path))
+        client.send(client_protocol.pack_file_tree(folder_path))
 
 
 if __name__ == '__main__':

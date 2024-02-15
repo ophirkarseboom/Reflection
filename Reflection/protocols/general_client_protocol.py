@@ -121,15 +121,16 @@ def pack_status_clone(status: bool):
     return packed
 
 
-def pack_status_open_file(status: bool):
+def pack_status_open_file(status: bool, path=''):
     """
     gets a boolean that tells if action worked or not and returns the packed str
+    :param path: path of file if able to open file
     :param status: boolean (success of failure)
     :return: packed str
     """
     packed = '17'
     if status:
-        packed += 'ok'
+        packed += f'ok,{path}'
     else:
         packed += 'no'
 

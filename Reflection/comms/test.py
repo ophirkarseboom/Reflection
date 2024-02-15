@@ -1,3 +1,4 @@
 from Reflection.settings import Settings
+import os
 
-print(Settings.get_ip())
+os.makedirs(r'D:\god\is\good')

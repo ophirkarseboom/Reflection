@@ -1,7 +1,7 @@
 from queue import Queue
 import threading
 
-from Reflection.comms import client_comm
+from Reflection.comms.client_comm import ClientComm
 from Reflection.protocols import user_client_protocol as protocol
 from uuid import getnode
 from collections import deque
@@ -16,11 +16,11 @@ class MainUserClient:
     def __init__(self):
         self.folders = {}
         self.server_rcv_q = Queue()
-        self.client = client_comm.ClientComm(Settings.server_ip, Settings.server_port, self.server_rcv_q, 6, 'U')
+        self.client = ClientComm(Settings.server_ip, Settings.server_port, self.server_rcv_q, 6, 'U')
         self.user_name = 'yotam'
         self.file_handler = FileHandler(self.user_name)
         self.handle_tree = Queue()
-        self.ip_comm = {}
+        self.ip_comm = {str: ClientComm}
         threading.Thread(target=self.rcv_comm, args=(self.server_rcv_q,), daemon=True).start()
         self.do_register('12345')
         self.do_connect('12345')
@@ -103,6 +103,15 @@ class MainUserClient:
                 print_nice('wrong input try again', 'red')
                 print()
 
+
+    def handle_status_open(self, vars: list):
+        """
+        gets
+        :param vars:
+        :return:
+        """
+
+
     def open(self, path: str, name):
         """
         gets path of file with it's name and opens it
@@ -111,11 +120,26 @@ class MainUserClient:
         return:
         """
         path += name
-        local = self.file_handler.remove_ip(self.user_name, path)
+
         if self.file_handler.is_local(path):
+            local = self.file_handler.remove_ip(self.user_name, path)
             os.system('start "" "' + local + '"')
         else:
-            pass
+
+            ip_to_connect = self.file_handler.extract_ip(self.user_name, path)
+            # setting up pear to pear
+            if ip_to_connect not in self.ip_comm:
+                rcv_q = Queue()
+                comm = ClientComm(ip_to_connect, Settings.pear_port, rcv_q, 8)
+                self.ip_comm[ip_to_connect] = comm
+                threading.Thread(target=self.rcv_comm, args=(rcv_q,), daemon=True).start()
+
+            else:
+                comm = self.ip_comm[ip_to_connect]
+
+            comm.send(protocol.pack_do_open_file(path))
+
+            
 
     def folders_add(self, path, name, typ):
 
@@ -136,9 +160,9 @@ class MainUserClient:
         :param name: name of object
         :return: None
         """
-        local = self.file_handler.remove_ip(self.user_name, path)
-        print('local:', local)
+
         if self.file_handler.is_local(path):
+            local = self.file_handler.remove_ip(self.user_name, path)
             local = local + name
             # do local stuff of creating file
             self.file_handler.create(local, typ)

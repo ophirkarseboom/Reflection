@@ -90,7 +90,7 @@ class FileHandler:
         created = True
         if not os.path.exists(path):
             if typ == 'fld':
-                os.mkdir(path)
+                os.makedirs(path)
             else:
                 with open(f'{path}.{typ}', 'w') as fp:
                     pass

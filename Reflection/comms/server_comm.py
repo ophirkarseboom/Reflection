@@ -26,6 +26,7 @@ class ServerComm:
         self.a_encrypt = asymmetric_encryption.AsymmetricEncryption()
         self.is_running = False
         self.receiving_files = []
+        self.my_ip = Settings.get_ip()
         threading.Thread(target=self._main_loop).start()
 
     def _main_loop(self):
@@ -110,8 +111,15 @@ class ServerComm:
                 file = bytes(file)
                 print(file)
                 file = self.open_clients[client][1].decrypt(file, True)
-                file = base64.b64encode(file).decode()
-                self.rcv_q.put((self.open_clients[client][0], str(header+','+file)))
+                path = header.split(',')[1]
+                ip = '\\' + self.my_ip
+                if ip in path:
+
+                    path = path.replace(ip, '')
+
+                    # creating file
+                    with open(path, 'wb') as save:
+                        save.write(file)
 
         if client in self.receiving_files:
             self.receiving_files.remove(client)
@@ -249,7 +257,7 @@ class ServerComm:
 if __name__ == '__main__':
     msg_q = queue.Queue()
     server = ServerComm(2500, msg_q, 8)
-    file_name = r'C:\cyber\reflection\Project\comms\cat.jpg'
+    file_name = r'T:\public\cyber\ophir\Reflection\Reflection\comms\cat.jpg'
     with open(file_name, 'rb') as f:
         b = f.read()
 
