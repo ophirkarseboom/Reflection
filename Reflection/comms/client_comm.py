@@ -25,9 +25,12 @@ class ClientComm:
         self.port = port
         self.rcv_q = rcv_q
         self.client_type = client_type
+
         self.server = socket.socket()
         self.a_encrypt = asymmetric_encryption.AsymmetricEncryption()
+
         self.symmetric = None
+
         threading.Thread(target=self._main_loop, daemon=True).start()
         time.sleep(0.3)
 
