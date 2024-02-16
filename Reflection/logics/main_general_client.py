@@ -62,6 +62,7 @@ def handle_open_file(got_ip: str, server: ServerComm, vars: list):
         with open(local_path, 'rb') as f:
             file = f.read()
 
+        print('path:', path)
         server.send(got_ip, client_protocol.pack_status_open_file(True, path))
         server.send(got_ip, file)
 
