@@ -24,9 +24,10 @@ def rcv_comm(comm, q):
         is_server = isinstance(comm, ServerComm)
         if is_server:
             ip, data = q.get()
-            data = server_protocol.unpack(data)
             if data == 'close':
                 continue
+            data = server_protocol.unpack(data)
+
         else:
             ip = None
             data = client_protocol.unpack(q.get())
