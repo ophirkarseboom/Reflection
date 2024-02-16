@@ -110,13 +110,13 @@ def handle_asked_file_tree(client: ClientComm, vars: list):
     :param vars: folder name
     :return: None
     """
-
+    print('got to handle_asked_file_tree')
     folder = vars[0]
     folder_path = f'{FileHandler.root}{folder}'
     print(folder_path)
     time.sleep(1)
     if os.path.isdir(folder_path):
-        print('nice')
+
         client.send(client_protocol.pack_file_tree(folder_path))
 
 
