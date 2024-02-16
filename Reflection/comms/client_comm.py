@@ -70,7 +70,7 @@ class ClientComm:
         """
         print('header:', header)
         if header[2:] == 'no':
-            rcv_q.put(header)
+            self.rcv_q.put(header)
             return
         try:
             data_len = int(self.server.recv(self.send_len).decode())

@@ -32,7 +32,7 @@ class MainUserClient:
         """
 
         commands = {'02': self.handle_status_register, '04': self.handle_status_login, '05': self.handle_got_file_tree,
-                    '07': self.handle_status_create, '16': self.handle_status_open}
+                    '07': self.handle_status_create, '17': self.handle_status_open}
         while True:
             data = protocol.unpack(q.get())
             if not data:
@@ -140,12 +140,15 @@ class MainUserClient:
             # setting up pear to pear
             if ip_to_connect not in self.ip_comm:
                 rcv_q = Queue()
+                print('hi')
                 comm = ClientComm(ip_to_connect, Settings.pear_port, rcv_q, 8)
+
                 self.ip_comm[ip_to_connect] = comm
                 threading.Thread(target=self.rcv_comm, args=(rcv_q,), daemon=True).start()
 
             else:
                 comm = self.ip_comm[ip_to_connect]
+
 
             comm.send(protocol.pack_do_open_file(path))
 
