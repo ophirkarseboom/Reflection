@@ -28,7 +28,6 @@ class ClientComm:
         self.server = socket.socket()
         self.a_encrypt = asymmetric_encryption.AsymmetricEncryption()
         self.symmetric = None
-        self.my_ip = Settings.get_ip()
         threading.Thread(target=self._main_loop, daemon=True).start()
         time.sleep(0.3)
 
