@@ -55,6 +55,7 @@ def handle_open_file(got_ip: str, server: ServerComm, vars: list):
         print('error in opening file')
         return
 
+    print('ok great')
     path = vars[0]
     user = FileHandler.get_user(path)
     local_path = FileHandler.remove_ip(user, path)
