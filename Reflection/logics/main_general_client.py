@@ -35,7 +35,7 @@ def rcv_comm(comm, q):
             print('got None from protocol')
             continue
 
-        print('data from server:', data)
+        print('data got:', data)
 
         opcode, params = data
         if is_server:
