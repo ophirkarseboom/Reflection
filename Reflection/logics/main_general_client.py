@@ -6,11 +6,8 @@ from Reflection.settings import Settings
 from Reflection.comms.client_comm import ClientComm
 from Reflection.protocols import general_client_protocol as client_protocol
 from Reflection.protocols import server_protocol
-from uuid import getnode
-import sys
 import os
 from Reflection.file_stuff.file_handler import FileHandler
-import netifaces as ni
 from Reflection.comms.server_comm import ServerComm
 
 
@@ -28,6 +25,8 @@ def rcv_comm(comm, q):
         if is_server:
             ip, data = q.get()
             data = server_protocol.unpack(data)
+            if data == 'close':
+                continue
         else:
             ip = None
             data = client_protocol.unpack(q.get())

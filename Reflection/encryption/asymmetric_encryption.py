@@ -7,13 +7,10 @@ class AsymmetricEncryption:
     def __init__(self, private_key=None, public_key=None):
 
         if not private_key and not public_key:
-            print('0')
             key = RSA.generate(2048)
-            print('1')
             self.public_key = key.publickey().export_key()
-            print('2')
             self.private_key = key.export_key()
-            print('3')
+
         elif not private_key or not public_key:
             self.private_key = private_key
             self.public_key = public_key
