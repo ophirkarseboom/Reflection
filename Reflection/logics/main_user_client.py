@@ -160,6 +160,7 @@ class MainUserClient:
             self.folders[path].insert(0, name)
 
         else:
+            print(self.folders)
             self.folders[path].append(f'{name}.{typ}')
 
     def create(self, path, name, typ):
@@ -187,9 +188,9 @@ class MainUserClient:
         :return: None
         """
         status, location, typ = vars
+        print('in handle_status_create location:', location)
         if status == 'ok':
-            name = os.path.basename(location)
-            path = location.replace(name, '')
+            path, name = FileHandler.split_path_last_part(location)
             self.folders_add(path, name, typ)
         else:
             print('could not register')

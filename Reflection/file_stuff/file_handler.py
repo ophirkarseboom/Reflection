@@ -27,6 +27,26 @@ class FileHandler:
         """
         return path.startswith(self.user_path + self.my_ip) and os.path.exists(FileHandler.remove_ip(self.username, path))
 
+    @staticmethod
+    def split_path_last_part(path):
+        """
+        gets path and removes last part of it
+        :param path: a path
+        :return: path updated, last part
+        """
+        # Split the path into its components
+        path_components = path.split(os.path.sep)
+
+        # Get the last component
+        last_part = path_components[-1]
+
+        # Remove the last component
+        updated_path_components = path_components[:-1]
+
+        # Join the updated components back into a path
+        updated_path = os.path.sep.join(updated_path_components)
+
+        return updated_path, last_part
 
     @staticmethod
     def open_file(path: str):

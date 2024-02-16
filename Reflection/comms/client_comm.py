@@ -105,10 +105,9 @@ class ClientComm:
 
                 print('header:', header)
                 path = header.split(',')[1]
-                name = os.path.basename(path)
-                if name in path and FileHandler.root in path:
-                    path = path.replace(name, '')
-                    path = path.replace(FileHandler.root, Settings.local_changes_path)
+                path, name = FileHandler.split_path_last_part(path)
+                if FileHandler.root in path:
+                    path = path.replace(FileHandler.root, Settings.local_changes_path, 1)
                     print('path:', path)
                     # creating folder for file
                     FileHandler.create(path, 'fld')
