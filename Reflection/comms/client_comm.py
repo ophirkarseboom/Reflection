@@ -68,7 +68,7 @@ class ClientComm:
         :param header: header of file
         :return: None
         """
-        print('data:', header)
+        print('header:', header)
         if header[2:] == 'no':
             rcv_q.put(header)
             return

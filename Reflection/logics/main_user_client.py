@@ -32,7 +32,7 @@ class MainUserClient:
         """
 
         commands = {'02': self.handle_status_register, '04': self.handle_status_login, '05': self.handle_got_file_tree,
-                    '07': self.handle_status_create}
+                    '07': self.handle_status_create, '17': self.handle_status_open}
         while True:
             data = protocol.unpack(q.get())
             if not data:
