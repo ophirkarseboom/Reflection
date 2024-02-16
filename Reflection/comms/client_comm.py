@@ -115,7 +115,7 @@ class ClientComm:
                     FileHandler.create(path, 'fld')
 
                     # creating file
-                    path += name
+                    path += '\\' + name
                     with open(path, 'wb') as save:
                         save.write(file)
 

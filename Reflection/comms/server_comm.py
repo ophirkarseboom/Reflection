@@ -233,7 +233,6 @@ class ServerComm:
         else:
             sock = ip
 
-        print('sock:', sock)
         if sock and self.is_running:
 
             print(f'sending to {ip}:', data)
