@@ -149,8 +149,9 @@ def handle_got_mac(client_ip: str, vars: list):
     mac = vars[0]
     users_for_mac = db.get_users(mac)
     has_users = len(users_for_mac) > 0
+    ip_mac[client_ip] = mac
     if has_users:
-        ip_mac[client_ip] = mac
+        print('nice')
         ip_for_mac = [username_ip[user] for user in users_for_mac if user in username_ip]
         for ip in ip_for_mac:
             if ip in user_comps:
@@ -158,7 +159,7 @@ def handle_got_mac(client_ip: str, vars: list):
 
                 # get user by ip
                 user = get_key_by_value(username_ip, ip)
-                server_comm.send(client_ip, protocol.pack_ask_file_Tree(f'{user}\\{client_ip[0]}'))
+                server_comm.send(client_ip, protocol.pack_ask_file_Tree(f'{user}'))
 
     server_comm.send(client_ip, protocol.pack_status_mac(has_users))
 
