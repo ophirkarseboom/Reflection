@@ -56,8 +56,10 @@ def handle_open_file(got_ip: str, server: ServerComm, vars: list):
         return
 
     path = vars[0]
-    if os.path.isfile(path):
-        with open(path, 'rb') as f:
+    user = FileHandler.get_user(path)
+    local_path = FileHandler.remove_ip(user, path)
+    if os.path.isfile(local_path):
+        with open(local_path, 'rb') as f:
             file = f.read()
 
         server.send(got_ip, client_protocol.pack_status_open_file(True, path))

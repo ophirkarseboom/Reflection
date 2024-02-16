@@ -143,7 +143,18 @@ class FileHandler:
             # Add the 'hidden' attribute
             ctypes.windll.kernel32.SetFileAttributesW(path, attrs | 2)
 
-
+    @staticmethod
+    def get_user(path: str):
+        """
+        gets path and returns user inside path
+        :param path: a path
+        :return: user inside path
+        """
+        path = path.split(os.path.sep)
+        user = None
+        if len(path) >= 3:
+            user = path[2]
+        return user
 
     @staticmethod
     def get_path_tree(path: str):
