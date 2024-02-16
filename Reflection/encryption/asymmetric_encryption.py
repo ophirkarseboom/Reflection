@@ -20,7 +20,8 @@ class AsymmetricEncryption:
         else:
             raise ValueError('Either provide two arguments or none')
 
-    def encrypt_msg(self, msg, receiver_key):
+    @staticmethod
+    def encrypt_msg(msg, receiver_key):
         """
         gets a msg and a public key
         :param msg: msg to encrypt

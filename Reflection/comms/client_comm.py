@@ -13,6 +13,7 @@ from Reflection.protocols import general_client_protocol
 from Reflection.protocols import user_client_protocol
 from Reflection.file_stuff.file_handler import FileHandler
 from Reflection.settings import Settings
+from Reflection.encryption.asymmetric_encryption import AsymmetricEncryption
 
 
 class ClientComm:
@@ -27,7 +28,6 @@ class ClientComm:
         self.client_type = client_type
 
         self.server = socket.socket()
-        self.a_encrypt = asymmetric_encryption.AsymmetricEncryption()
 
         self.symmetric = None
 
@@ -152,7 +152,7 @@ class ClientComm:
         """
         print(f'sending: {data}')
         if receiver_key:
-            data = self.a_encrypt.encrypt_msg(data, receiver_key)
+            data = AsymmetricEncryption.encrypt_msg(data, receiver_key)
         elif self.symmetric:
             data = self.symmetric.encrypt(data)
         else:
