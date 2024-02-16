@@ -29,6 +29,15 @@ class FileHandler:
 
 
     @staticmethod
+    def open_file(path: str):
+        """
+        gets path and opens file
+        :param path: path of file
+        """
+        os.system('start "" "' + path + '"')
+
+
+    @staticmethod
     def insert_ip(path: str, username: str, ip: str):
         """
         gets username and path and inserts ip in it

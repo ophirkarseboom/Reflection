@@ -69,6 +69,9 @@ class ClientComm:
         :return: None
         """
         print('data:', header)
+        if header[2:] == 'no':
+            rcv_q.put(header)
+            return
         try:
             data_len = int(self.server.recv(self.send_len).decode())
         except Exception as e:
@@ -102,18 +105,20 @@ class ClientComm:
 
                 print('header:', header)
                 path = header.split(',')[1]
-                name = '\\' + os.path.basename(path)
-                path = path.replace(name, '')
-                path.replace(FileHandler.root)
-                # creating folder for file
-                local_path = FileHandler.create(Settings.local_changes_path + path, 'fld')
-                FileHandler.create(path.replace(os.path.basename(path), '')[:-1], 'fld')
+                name = os.path.basename(path)
+                if name in path and FileHandler.root in path:
+                    path = path.replace(name, '')
+                    path = path.replace(FileHandler.root, Settings.local_changes_path)
+                    print('path:', path)
+                    # creating folder for file
+                    FileHandler.create(path, 'fld')
 
-                # creating file
-                with open(path, 'wb') as save:
-                    save.write(file)
+                    # creating file
+                    path += name
+                    with open(path, 'wb') as save:
+                        save.write(file)
 
-                self.rcv_q.put(f'{header[:2]}{path}')
+                    self.rcv_q.put(general_client_protocol.pack_status_open_file(True, path))
 
 
     def _key_exchange(self, public_key):

@@ -5,7 +5,7 @@ import socket
 class Settings:
     server_ip = '10.100.102.27'
     server_port = 2000
-    root = 'D:\\reflection\\'
+    root = 'C:\\reflection\\'
     pear_port = 2500
     local_changes_path = f'{root}localChange\\'
 

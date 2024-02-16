@@ -106,10 +106,20 @@ class MainUserClient:
 
     def handle_status_open(self, vars: list):
         """
-        gets
-        :param vars:
-        :return:
+        showing user the file if opened
+        :param vars: status and path
+        :return: None
         """
+        status = vars[0]
+        if status:
+            path = vars[1]
+            if os.path.isfile(path):
+                FileHandler.open_file(path)
+            else:
+                print('error in opening file')
+        else:
+            print("couldn't open file at general_client")
+
 
 
     def open(self, path: str, name):
