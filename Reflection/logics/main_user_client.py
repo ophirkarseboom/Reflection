@@ -51,8 +51,9 @@ class MainUserClient:
         """
 
         last_dir = deque()
-        self.folders = {self.file_handler.user_path: [',']}
-        cwd = self.file_handler.user_path
+        user_path = self.file_handler.user_path[:-1]
+        self.folders = {user_path: [',']}
+        cwd = user_path
         while True:
 
             # combine new tree
@@ -63,7 +64,7 @@ class MainUserClient:
 
                 ip_path = list(new_folders.keys())[0]
                 ip = os.path.basename(ip_path)
-                self.folders[self.file_handler.user_path].insert(0, ip)
+                self.folders[user_path].insert(0, ip)
 
             print(self.folders)
             print_directory(cwd, self.folders)
@@ -278,6 +279,7 @@ def print_directory(fold, folders):
     print()
     bold = True
     count = 0
+
     for obj in folders[fold]:
         if obj == ',':
             bold = False

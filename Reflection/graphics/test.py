@@ -7,57 +7,19 @@ from Reflection.protocols import user_client_protocol as protocol
 
 class TestFrame(wx.Frame):
 
+    open_folder_name = 'open_folder.png'
+    close_folder_name = 'close_folder.png'
+    file_name = 'file.png'
+
     def __init__(self):
         wx.Frame.__init__(self, None, -1)
-
+        self.cwd = os.getcwd() + '\\'
         self.tree = wx.TreeCtrl(self, style=wx.TR_HIDE_ROOT)
         self.root = self.tree.AddRoot("root")
         self.image_list = wx.ImageList(16, 16)
-        print(protocol.unpack('05'+FileHandler.get_path_tree('T:\public\cyber\ophir\Reflection\Reflection'))[1][0])
-        dic = {'D:\\reflection\\yotam': ['192.168.4.96', ','], 'D:\\reflection\\yotam\\192.168.4.96': ['folder', 'folder1', 'folder10', 'folder2', 'folder3', 'folder4', 'folder5', 'folder6', 'folder7', ',', 'file.txt', 'hi.docx'], 'D:\\reflection\\yotam\\192.168.4.96\\folder': [','], 'D:\\reflection\\yotam\\192.168.4.96\\folder1': ['in1', ','], 'D:\\reflection\\yotam\\192.168.4.96\\folder1\\in1': [','], 'D:\\reflection\\yotam\\192.168.4.96\\folder10': [','], 'D:\\reflection\\yotam\\192.168.4.96\\folder2': [','], 'D:\\reflection\\yotam\\192.168.4.96\\folder3': [','], 'D:\\reflection\\yotam\\192.168.4.96\\folder4': [','], 'D:\\reflection\\yotam\\192.168.4.96\\folder5': [','], 'D:\\reflection\\yotam\\192.168.4.96\\folder6': ['folder_in_6', ',', 'a.txt'], 'D:\\reflection\\yotam\\192.168.4.96\\folder6\\folder_in_6': [','], 'D:\\reflection\\yotam\\192.168.4.96\\folder7': [',', 'a.txt', 'b.txt']}
-        dic = protocol.unpack('05'+FileHandler.get_path_tree('T:\public\cyber\ophir\Reflection\Reflection'))[1][0]
+        self.tree.AssignImageList(self.image_list)
+        dic = {'C:\\reflection\\yotam': ['10.100.102.19', '10.100.102.27', ','], 'C:\\reflection\\yotam\\10.100.102.27': ['folder1', 'folder2', 'folder5', ',', 'doc.txt'], 'C:\\reflection\\yotam\\10.100.102.27\\folder1': [','], 'C:\\reflection\\yotam\\10.100.102.27\\folder2': [',', 'a.txt'], 'C:\\reflection\\yotam\\10.100.102.27\\folder5': [',', 'a.txt'], 'C:\\reflection\\yotam\\10.100.102.19': ['folder1', 'folder2', 'folder3', 'folder4', 'folder5', 'folder6', 'folder7', 'folder8', ',', 'a.py', 'a.txt', 'b.txt', 'c.txt', 'k.txt'], 'C:\\reflection\\yotam\\10.100.102.19\\folder1': [',', 'a.txt'], 'C:\\reflection\\yotam\\10.100.102.19\\folder2': [','], 'C:\\reflection\\yotam\\10.100.102.19\\folder3': [',', 'a.txt'], 'C:\\reflection\\yotam\\10.100.102.19\\folder4': [','], 'C:\\reflection\\yotam\\10.100.102.19\\folder5': [',', 'a.txt'], 'C:\\reflection\\yotam\\10.100.102.19\\folder6': [',', 'a.txt'], 'C:\\reflection\\yotam\\10.100.102.19\\folder7': [',', 'a.txt'], 'C:\\reflection\\yotam\\10.100.102.19\\folder8': [',', 'a.txt']}
         self.convertToTree(dic)
-
-
-        # self.root = self.tree.AddRoot("")
-        # gr = self.tree.AppendItem(self.root, "Grooveshark", data='nice')
-        # pop_r = self.tree.AppendItem(gr, "Popular")
-        # sr = self.tree.AppendItem(gr, "Search")
-        #
-        # dr = self.tree.AppendItem(self.root, "Download")
-        #
-        # pr = self.tree.AppendItem(self.root, "Pandora")
-        # stat_r = self.tree.AppendItem(pr, "Stations")
-
-
-
-
-        # grooveshark = image_list.Add(wx.Image(r"T:\public\cyber\ophir\Reflection\Reflection\graphics\image.png", wx.BITMAP_TYPE_PNG).Scale(16,16).ConvertToBitmap())
-        # popular     = image_list.Add(wx.Image(r"T:\public\cyber\ophir\Reflection\Reflection\graphics\image.png", wx.BITMAP_TYPE_PNG).Scale(16,16).ConvertToBitmap())
-        # search      = image_list.Add(wx.Image(r"T:\public\cyber\ophir\Reflection\Reflection\graphics\image.png", wx.BITMAP_TYPE_PNG).Scale(16,16).ConvertToBitmap())
-        # download    = image_list.Add(wx.Image(r"T:\public\cyber\ophir\Reflection\Reflection\graphics\image.png", wx.BITMAP_TYPE_PNG).Scale(16,16).ConvertToBitmap())
-        # pandora     = image_list.Add(wx.Image(r"T:\public\cyber\ophir\Reflection\Reflection\graphics\image.png", wx.BITMAP_TYPE_PNG).Scale(16,16).ConvertToBitmap())
-        # stations    = image_list.Add(wx.Image(r"T:\public\cyber\ophir\Reflection\Reflection\graphics\image.png", wx.BITMAP_TYPE_PNG).Scale(16,16).ConvertToBitmap())
-        #
-        # self.tree.AssignImageList(image_list)
-
-        # self.tree.SetItemImage(gr, grooveshark, wx.TreeItemIcon_Normal)
-        # self.tree.SetItemImage(pop_r, popular, wx.TreeItemIcon_Normal)
-        # self.tree.SetItemImage(sr, search, wx.TreeItemIcon_Normal)
-        # self.tree.SetItemImage(dr, download, wx.TreeItemIcon_Normal)
-        # self.tree.SetItemImage(pr, pandora, wx.TreeItemIcon_Normal)
-        # self.tree.SetItemImage(stat_r, stations, wx.TreeItemIcon_Normal)
-        #
-        # self.tree.SetItemData(pop_r, 2)
-        #
-        # self.tree.SetItemData(sr, 3)
-        #
-        # self.tree.SetItemData(dr, 4)
-        #
-        # self.tree.SetItemData(pr, 5)
-        #
-        # self.tree.SetItemData(stat_r, 6)
-        #
 
         self.Bind(wx.EVT_TREE_ITEM_ACTIVATED, self.OnActivated, self.tree)
         self.Bind(wx.EVT_TREE_ITEM_EXPANDED, self.OnItemExpanded, self.tree)
@@ -70,89 +32,49 @@ class TestFrame(wx.Frame):
         :param father: a parent
         :return: None
         """
-        # dic = {'D:\\reflection\\yotam\\': ['192.168.4.96', ','],
-        #        'D:\\reflection\\yotam\\192.168.4.96': ['folder', 'folder1', 'folder10', 'folder2', 'folder3', 'folder4',
-        #                                                'folder5', 'folder6', 'folder7', ',', 'file.txt', 'hi.docx'],
-        #        'D:\\reflection\\yotam\\192.168.4.96\\folder': [','],
-        #        'D:\\reflection\\yotam\\192.168.4.96\\folder1': ['in1', ','],
-        #        'D:\\reflection\\yotam\\192.168.4.96\\folder1\\in1': [','],
-        #        'D:\\reflection\\yotam\\192.168.4.96\\folder10': [','],
-        #        'D:\\reflection\\yotam\\192.168.4.96\\folder2': [','],
-        #        'D:\\reflection\\yotam\\192.168.4.96\\folder3': [','],
-        #        'D:\\reflection\\yotam\\192.168.4.96\\folder4': [','],
-        #        'D:\\reflection\\yotam\\192.168.4.96\\folder5': [','],
-        #        'D:\\reflection\\yotam\\192.168.4.96\\folder6': ['folder_in_6', ',', 'a.txt'],
-        #        'D:\\reflection\\yotam\\192.168.4.96\\folder6\\folder_in_6': [','],
-        #        'D:\\reflection\\yotam\\192.168.4.96\\folder7': [',', 'a.txt', 'b.txt']}
+
         if not father:
             father_path = next(iter(dic.keys()))
-            father = self.tree.AppendItem(self.root, os.path.basename(father_path), data=father_path)
+            father = self.root
         else:
             father_path = self.tree.GetItemData(father)
 
-        print('father_path:', father_path)
         folder = True
         if father_path not in dic:
-            print('hi')
             return
+
+        # runs on every object in this folder adds it to tree and if is folder then
         for element in dic[father_path]:
             if element == ',':
                 folder = False
                 continue
 
             new_item = self.tree.AppendItem(father, element, data=f'{father_path}\\{element}')
+            self.add_pic(new_item, element, folder)
             if folder:
-                # self.add_pic(new_item, element)
+
                 self.convertToTree(dic, new_item)
 
-
-
-
-
-
-
-
-
-
-        # results: Dict[str, wx.TreeItemId] = {"" : root}
-        # for dir, files in dic.items():
-        #     sub_dirs = dir.split("\\")
-        #     temp = ""
-        #
-        #     for sub_dir in sub_dirs:
-        #         old_temp = temp
-        #         temp += sub_dir
-        #         if temp not in results:
-        #             new_child = self.tree.AppendItem(results[old_temp], " ".join(files))
-        #             results[temp] = new_child
-        #
-        # print(results)
-
-
-
-    def add_pic(self, item, name: str):
+    def add_pic(self, item, name: str, is_folder: bool):
         """
         gets item and adds correct image to it
         :param item: object in tree
         :param name: name of item
         :return: None
         """
-        pic_path = 'T:\\public\\cyber\\ophir\\Reflection\\Reflection\\graphics\\'
-        name = name.split()
-        if len(name) == 1:
-            pic_path += 'folder.png'
+        name = name.split('.')
+        if is_folder:
+            pic_name = self.close_folder_name
         else:
-            # pic_path += name[1]
-            pic_path += 'folder.png'
+            pic_name = self.file_name
 
-        item_image = self.image_list.Add(wx.Image(pic_path, wx.BITMAP_TYPE_PNG).Scale(16, 16).ConvertToBitmap())
-        self.tree.AssignImageList(self.image_list)
+        item_image = self.image_list.Add(wx.Image(self.cwd + pic_name, wx.BITMAP_TYPE_PNG).Scale(16, 16).ConvertToBitmap())
         self.tree.SetItemImage(item, item_image, wx.TreeItemIcon_Normal)
 
 
 
-
     def OnActivated(self, evt):
+
         print("hello")
         print('Double clicked on', self.tree.GetItemData(evt.GetItem()))
         item = evt.GetItem()
@@ -162,13 +84,16 @@ class TestFrame(wx.Frame):
             self.tree.Expand(item)
 
     def OnItemExpanded(self, evt):
-        print("hello")
-        print('Double clicked on', self.tree.GetItemData(evt.GetItem()))
+        item = evt.GetItem()
+        print('Double clicked on', self.tree.GetItemData(item))
 
+        item_image = self.image_list.Add(wx.Image(self.cwd + self.open_folder_name, wx.BITMAP_TYPE_PNG).Scale(16, 16).ConvertToBitmap())
+        self.tree.SetItemImage(item, item_image, wx.TreeItemIcon_Normal)
 
     def OnItemCollapsed(self, evt):
-        print("hello")
-        print('Double clicked on', self.tree.GetItemData(evt.GetItem()))
+        item = evt.GetItem()
+        item_image = self.image_list.Add(wx.Image(self.cwd + self.close_folder_name, wx.BITMAP_TYPE_PNG).Scale(16, 16).ConvertToBitmap())
+        self.tree.SetItemImage(item, item_image, wx.TreeItemIcon_Normal)
 
 
 if __name__ == "__main__":
