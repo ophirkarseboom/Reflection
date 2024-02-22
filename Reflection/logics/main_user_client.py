@@ -8,22 +8,65 @@ from collections import deque
 import os
 from Reflection.file_stuff.file_handler import FileHandler
 from Reflection.settings import Settings
+import wx
+from pubsub import pub
 import time
+from Reflection.graphics.test import TestFrame
 
 
 class MainUserClient:
 
-    def __init__(self):
+    def __init__(self, graphic_q):
         self.folders = {}
+        self.graphic_q = graphic_q
         self.server_rcv_q = Queue()
         self.client = ClientComm(Settings.server_ip, Settings.server_port, self.server_rcv_q, 6, 'U')
         self.user_name = 'yotam'
         self.file_handler = FileHandler(self.user_name)
         self.handle_tree = Queue()
         self.ip_comm = {str: ClientComm}
+
+        user_path = self.file_handler.user_path[:-1]
+        self.folders = {user_path: [',']}
         threading.Thread(target=self.rcv_comm, args=(self.server_rcv_q,), daemon=True).start()
+        threading.Thread(target=self.rcv_graphic, args=(self.graphic_q,), daemon=True).start()
+
         self.do_register('12345')
         self.do_connect('12345')
+
+
+
+    def rcv_graphic(self, q: Queue):
+        """
+        gets q from graphics and handles what got
+        :param q: q gets from graphic
+        :return: None
+        """
+        user_path = self.file_handler.user_path[:-1]
+        cwd = user_path
+        while True:
+            print(self.folders)
+            command, path_got = q.get()
+
+            if command == 'create file':
+                path, name = self.file_handler.split_path_last_part(path_got)
+                print('path:', path)
+                name, typ = name.split('.')
+                print('name:', name)
+                print('typ:', typ)
+                self.create(path, name, typ)
+            elif command == 'create folder':
+                path, name = self.file_handler.split_path_last_part(path_got)
+                self.create(path, name, 'fld')
+
+            elif command == 'open':
+                self.open(path_got)
+
+            else:
+                print_nice('wrong input try again', 'red')
+                print()
+
+
 
     def rcv_comm(self, q):
         """
@@ -44,65 +87,30 @@ class MainUserClient:
 
             commands[opcode](params)
 
-    def navigate_folders(self):
+    def get_file_tree(self):
         """
         gets file tree and lets user navigate through it
         :return: None
         """
 
-        last_dir = deque()
         user_path = self.file_handler.user_path[:-1]
-        self.folders = {user_path: [',']}
-        cwd = user_path
+        new_folders = {}
         while True:
 
-            # combine new tree
-            while not self.handle_tree.empty():
-                new_folders = self.handle_tree.get()
+            # gets new folder adds it to folders dict
+            folders_got = self.handle_tree.get()
+            new_folders[user_path] = [',']
+            self.folders.update(folders_got)
 
-                self.folders.update(new_folders)
+            # gets ip of computer got from
+            ip_path = list(folders_got.keys())[0]
+            ip = os.path.basename(ip_path)
 
-                ip_path = list(new_folders.keys())[0]
-                ip = os.path.basename(ip_path)
-                self.folders[user_path].insert(0, ip)
-
-            print(self.folders)
-            print_directory(cwd, self.folders)
-            print()
-            print_nice('enter something to do: ', 'blue')
-            to_do = input().split()
-            command = to_do[0]
-            param = None
-            if len(to_do) > 1:
-                param = to_do[1]
-
-            path = cwd
-            if not cwd.endswith('\\'):
-                path += '\\'
-
-            if command == 'exit':
-                break
-            elif command == 'in':
-                path += param
-                if path in self.folders.keys():
-                    last_dir.append(cwd)
-                    cwd = path
-            elif command == 'back':
-                if len(last_dir) == 0:
-                    print_nice("this is root directory, you can't got back", 'red')
-                    print()
-                else:
-                    cwd = last_dir.pop()
-
-            elif command == 'create':
-                self.create(path, param, to_do[2])
-
-            elif command == 'open':
-                self.open(path, param)
-
-            else:
-                print_nice('wrong input try again', 'red')
-                print()
+            # adds ip to folders in path needed
+            self.folders[user_path].insert(0, ip)
+            new_folders.update(folders_got)
+            new_folders[user_path].insert(0, ip)
+            wx.CallAfter(pub.sendMessage, "update_tree", dic=new_folders)
 
 
     def handle_status_open(self, vars: list):
@@ -123,14 +131,13 @@ class MainUserClient:
 
 
 
-    def open(self, path: str, name):
+    def open(self, path: str):
         """
         gets path of file with it's name and opens it
         :param path: path of file
         :param name:  name
         return:
         """
-        path += name
 
         if self.file_handler.is_local(path):
             local = self.file_handler.remove_ip(self.user_name, path)
@@ -155,7 +162,6 @@ class MainUserClient:
             
 
     def folders_add(self, path, name, typ):
-
         if path.endswith('\\'):
             path = path[:-1]
         if typ == 'fld':
@@ -163,10 +169,11 @@ class MainUserClient:
             self.folders[path].insert(0, name)
 
         else:
-            print(self.folders)
             self.folders[path].append(f'{name}.{typ}')
 
-    def create(self, path, name, typ):
+        wx.CallAfter(pub.sendMessage, "create", path=path, name=name, typ=typ)
+
+    def create(self, path: str, name: str, typ: str):
         """
         gets path and typ, creates it
         :param path: path of object to create
@@ -174,7 +181,8 @@ class MainUserClient:
         :param name: name of object
         :return: None
         """
-
+        if not path.endswith('\\'):
+            path += '\\'
         if self.file_handler.is_local(path):
             local = self.file_handler.remove_ip(self.user_name, path)
             local = local + name
@@ -191,10 +199,10 @@ class MainUserClient:
         :return: None
         """
         status, location, typ = vars
-        print('in handle_status_create location:', location)
         if status == 'ok':
             path, name = FileHandler.split_path_last_part(location)
             self.folders_add(path, name, typ)
+
         else:
             print('could not register')
 
@@ -220,7 +228,7 @@ class MainUserClient:
         if success == 'ok':
             print('you are signed in')
             self.file_handler.create_root()
-            thread_handle_tree = threading.Thread(target=self.navigate_folders, daemon=True)
+            thread_handle_tree = threading.Thread(target=self.get_file_tree, daemon=True)
             thread_handle_tree.start()
 
         else:
@@ -301,7 +309,9 @@ def get_mac_address():
 
 
 if __name__ == '__main__':
-
-    MainUserClient()
-    while True:
-        pass
+    graphic_q = Queue()
+    MainUserClient(graphic_q)
+    a = wx.App(False)
+    f = TestFrame(graphic_q)
+    f.Show()
+    a.MainLoop()

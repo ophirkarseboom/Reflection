@@ -3,12 +3,12 @@ from uuid import getnode
 import socket
 
 class Settings:
-    server_ip = '10.100.102.27'
+    server_ip = '192.168.4.96'
     server_port = 2000
-    root = 'C:\\reflection\\'
+    root = 'D:\\reflection\\'
     pear_port = 2500
     local_changes_path = f'{root}localChange\\'
-
+    pic_path = 'T:\\public\\cyber\\ophir\\Reflection\\Reflection\\graphics\\'
 
     @staticmethod
     def get_ip():
