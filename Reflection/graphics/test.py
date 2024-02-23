@@ -40,6 +40,21 @@ class CreateFileDialog(wx.Dialog):
         self.EndModal(wx.ID_CANCEL)
 
 
+    @ staticmethod
+    def check_input(inp: str):
+        """
+        check if input is up to standard
+        :param inp: input
+        :return: if input is valid or not
+        """
+        valid = True
+        forbidden = ('*', ',', '\\', '/')
+        for bad in forbidden:
+            if bad in inp:
+                valid = False
+                break
+
+        return valid
 class TestFrame(wx.Frame):
     open_folder_name = 'open_folder.png'
     close_folder_name = 'close_folder.png'

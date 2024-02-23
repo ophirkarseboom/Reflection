@@ -51,7 +51,9 @@ class MainUserClient:
             if command == 'create file':
                 path, name = self.file_handler.split_path_last_part(path_got)
                 print('path:', path)
-                name, typ = name.split('.')
+                name = name.split('.')
+                typ = name[-1]
+                name = ''.join(name[:-1])
                 print('name:', name)
                 print('typ:', typ)
                 self.create(path, name, typ)
@@ -186,6 +188,7 @@ class MainUserClient:
         if self.file_handler.is_local(path):
             local = self.file_handler.remove_ip(self.user_name, path)
             local = local + name
+
             # do local stuff of creating file
             self.file_handler.create(local, typ)
             self.folders_add(path, name, typ)
@@ -241,7 +244,6 @@ class MainUserClient:
         :return: None
         """
         self.handle_tree.put(vars[0])
-        # need to do grpahic stuff
 
     def do_register(self, password):
         """
