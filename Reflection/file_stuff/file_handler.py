@@ -34,10 +34,16 @@ class FileHandler:
         gets path and deletes it from computer
         :param path: path to delete
         """
+        delete = False
         if os.path.isdir(path):
+            delete = True
             shutil.rmtree(path)
         elif os.path.isfile(path):
+            delete = True
             os.remove(path)
+
+        return delete
+
     @staticmethod
     def split_path_last_part(path):
         """

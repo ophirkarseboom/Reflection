@@ -34,8 +34,6 @@ class MainUserClient:
         self.do_register('12345')
         self.do_connect('12345')
 
-
-
     def rcv_graphic(self, q: Queue):
         """
         gets q from graphics and handles what got
@@ -77,7 +75,6 @@ class MainUserClient:
         """
         wx.CallAfter(pub.sendMessage, "error", error=error)
 
-
     def delete(self, path: str):
         """
         gets path of file with its name and deletes it
@@ -91,14 +88,11 @@ class MainUserClient:
         if self.file_handler.is_local(path):
             local = self.file_handler.remove_ip(self.user_name, path)
 
-            # do local stuff deleting file creating file
+            # do local stuff deleting file
             self.file_handler.delete(local)
             self.folders_remove(path)
         else:
-            pass
-
-
-
+            self.client.send(protocol.pack_do_delete(path))
 
     def rcv_comm(self, q):
         """
@@ -107,7 +101,7 @@ class MainUserClient:
         """
 
         commands = {'02': self.handle_status_register, '04': self.handle_status_login, '05': self.handle_got_file_tree,
-                    '07': self.handle_status_create, '17': self.handle_status_open}
+                    '07': self.handle_status_create, '17': self.handle_status_open, '11': self.handle_status_delete}
         while True:
             data = protocol.unpack(q.get())
             if not data:
@@ -128,7 +122,6 @@ class MainUserClient:
         user_path = self.file_handler.user_path[:-1]
         new_folders = {}
         while True:
-
             # gets new folder adds it to folders dict
             folders_got = self.handle_tree.get()
             new_folders[user_path] = [',']
@@ -143,7 +136,6 @@ class MainUserClient:
             new_folders.update(folders_got)
             new_folders[user_path].insert(0, ip)
             wx.CallAfter(pub.sendMessage, "update_tree", dic=new_folders)
-
 
     def handle_status_open(self, vars: list):
         """
@@ -160,8 +152,6 @@ class MainUserClient:
                 print('error in opening file')
         else:
             print("couldn't open file at general_client")
-
-
 
     def open(self, path: str):
         """
@@ -187,9 +177,7 @@ class MainUserClient:
             else:
                 comm = self.ip_comm[ip_to_connect]
 
-
             comm.send(protocol.pack_do_open_file(path))
-
 
     def folders_remove(self, path):
         """
@@ -253,6 +241,19 @@ class MainUserClient:
         if status == 'ok':
             path, name = FileHandler.split_path_last_part(location)
             self.folders_add(path, name, typ)
+
+        else:
+            print('could not create')
+
+    def handle_status_create(self, vars: list):
+        """
+        gets status of creation and shows user what happened
+        :param vars: status, location, type
+        :return: None
+        """
+        status, location = vars
+        if status == 'ok':
+            self.folders_remove(location)
 
         else:
             print('could not register')

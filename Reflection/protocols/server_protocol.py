@@ -102,10 +102,11 @@ def pack_status_rename(status: bool, path: str, new_name: str):
     return packed
 
 
-def pack_status_delete(status: bool):
+def pack_status_delete(status: bool, location: str):
     """
     gets a boolean that tells if action worked or not and returns the packed str
     :param status: boolean (success of failure)
+    :param location: location of delete
     :return: packed str
     """
     packed = '11'
@@ -114,7 +115,7 @@ def pack_status_delete(status: bool):
     else:
         packed += 'no'
 
-    return packed
+    return f'{packed},{location}'
 
 
 def pack_status_move(status: bool):

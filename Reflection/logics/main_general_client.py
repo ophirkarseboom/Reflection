@@ -19,7 +19,7 @@ def rcv_comm(comm, q):
     :param comm: client or server comm
     :param q: msg q
     """
-    commands = {'16': handle_open_file, '31': handle_asked_file_tree, '32': handle_create, '34': handle_status_mac, }
+    commands = {'23': handle_delete, '16': handle_open_file, '31': handle_asked_file_tree, '32': handle_create, '34': handle_status_mac, }
     while True:
         is_server = isinstance(comm, ServerComm)
         if is_server:
@@ -80,6 +80,18 @@ def handle_create(client: ClientComm, vars: list):
     location, typ = vars
     status = FileHandler.create(location, typ)
     client.send(client_protocol.pack_status_create(status, location, typ))
+
+
+def handle_delete(client: ClientComm, vars: list):
+    """
+    deletes what server sent if possible and returns status to server
+    :param client: client comm
+    :param vars: location to delete
+    :return: None
+    """
+    location = vars[0]
+    status = FileHandler.delete(location)
+    client.send(client_protocol.pack_status_delete(status, location))
 
 
 def send_mac():

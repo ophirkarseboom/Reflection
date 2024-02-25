@@ -205,6 +205,27 @@ def handle_status_create(got_ip: str, vars: str):
     location = FileHandler.insert_ip(location, username, got_ip[0])
     server_comm.send(ip_to_send, protocol.pack_status_create(status, location, typ))
 
+def handle_status_delete(got_ip: str, vars: str):
+    """
+    sending user if delete was success
+    :param got_ip: ip got from
+    :param vars: status, location
+    :return: None
+    """
+    if len(vars) != 2:
+        handle_disconnect(got_ip, False)
+        return
+
+    status, location = vars
+    username = location.replace(FileHandler.root, '')
+    username = username[:username.index('\\')]
+
+    ip_to_send = username_ip[username]
+    location = FileHandler.insert_ip(location, username, got_ip[0])
+    server_comm.send(ip_to_send, protocol.pack_status_delete(status, location))
+
+
+
 
 def get_key_by_value(dic: dict, value: str):
     """
@@ -214,11 +235,33 @@ def get_key_by_value(dic: dict, value: str):
     """
     return next(filter(lambda item: item[1] == value, dic.items()), None)[0]
 
+
+def got_delete(got_ip: str, vars: list):
+    """
+    sending appropriate client to delete object
+    :param got_ip: ip sent from
+    :param vars: location to delete
+    :return: None
+    """
+    if len(vars) != 1:
+
+        handle_disconnect(got_ip, False)
+        return
+
+    location = vars[0]
+    user_got = get_key_by_value(username_ip, got_ip)
+    ip_to_send = FileHandler.extract_ip(user_got, location)
+    ip_to_send = (ip_to_send, 'G')
+    location = FileHandler.remove_ip(user_got, location)
+    server_comm.send(ip_to_send, protocol.pack_do_delete(location))
+
+
+
 if __name__ == '__main__':
     rcv_q = queue.Queue()
     server_port = 2000
     server_comm = server_comm.ServerComm(server_port, rcv_q, 6)
-    commands = {'01': handle_register, '03': handle_sign_in, '06': got_create, '20': handle_got_file_tree, '29': handle_got_mac, '33': handle_status_create}
+    commands = {'01': handle_register, '03': handle_sign_in, '06': got_create, '10': got_delete, '20': handle_got_file_tree, '24': handle_status_delete, '29': handle_got_mac, '33': handle_status_create}
     ip_mac = {}
     user_comps = {}
     username_ip = {}
