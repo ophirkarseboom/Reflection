@@ -8,49 +8,67 @@ from Reflection import settings
 from queue import Queue
 
 class CreateFileDialog(wx.Dialog):
-    def __init__(self, parent, title):
+    def __init__(self, parent, title: str):
         super(CreateFileDialog, self).__init__(parent, title=title, size=(300, 150))
 
-        panel = wx.Panel(self)
+        self.is_folder = title.lower().endswith('folder')
+        self.forbidden = ('*', ',', '\\', '/', '[', ']', '{', '}', '?')
+        self.file_name = ''
+        self.panel = wx.Panel(self)
         vbox = wx.BoxSizer(wx.VERTICAL)
 
-        hbox1 = wx.BoxSizer(wx.HORIZONTAL)
-        lbl = wx.StaticText(panel, label="Enter Name:")
-        hbox1.Add(lbl, flag=wx.RIGHT, border=8)
-        self.text_ctrl = wx.TextCtrl(panel)
-        hbox1.Add(self.text_ctrl, proportion=1)
-        vbox.Add(hbox1, flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, border=10)
+        text_box = wx.BoxSizer(wx.HORIZONTAL)
+        lbl = wx.StaticText(self.panel, label="Enter Name:")
+        text_box.Add(lbl, flag=wx.RIGHT, border=8)
+        self.text_ctrl = wx.TextCtrl(self.panel)
+        text_box.Add(self.text_ctrl, proportion=1)
+        vbox.Add(text_box, flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, border=10)
 
-        hbox2 = wx.BoxSizer(wx.HORIZONTAL)
-        btn_ok = wx.Button(panel, label='OK')
+        btn_box = wx.BoxSizer(wx.HORIZONTAL)
+        btn_ok = wx.Button(self.panel, label='OK')
         btn_ok.Bind(wx.EVT_BUTTON, self.on_ok)
-        hbox2.Add(btn_ok)
-        btn_cancel = wx.Button(panel, label='Cancel')
+        btn_box.Add(btn_ok)
+        btn_cancel = wx.Button(self.panel, label='Cancel')
         btn_cancel.Bind(wx.EVT_BUTTON, self.on_cancel)
-        hbox2.Add(btn_cancel, flag=wx.LEFT, border=5)
-        vbox.Add(hbox2, flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, border=10)
+        btn_box.Add(btn_cancel, flag=wx.LEFT, border=5)
+        vbox.Add(btn_box, flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, border=10)
 
-        panel.SetSizer(vbox)
+        self.panel.SetSizer(vbox)
 
     def on_ok(self, event):
+        """
+        when pressed on ok gets input and tells if valid or not
+        :param event: event happened
+        """
         self.file_name = self.text_ctrl.GetValue()
-        self.EndModal(wx.ID_OK)
+        if self.valid_input():
+            self.EndModal(wx.ID_OK)
+        else:
+            wx.MessageBox("name is not valid", "Error", wx.OK | wx.ICON_ERROR)
+
 
     def on_cancel(self, event):
+        """
+        closes file dialog
+        :param event: event happened
+        """
         self.EndModal(wx.ID_CANCEL)
 
-
-    @ staticmethod
-    def check_input(inp: str):
+    def valid_input(self):
         """
         check if input is up to standard
-        :param inp: input
         :return: if input is valid or not
         """
         valid = True
-        forbidden = ('*', ',', '\\', '/')
+
+        # temp
+        forbidden = list(self.forbidden)
+        if self.is_folder:
+            forbidden.append('.')
+        else:
+            valid = '.' in self.file_name
         for bad in forbidden:
-            if bad in inp:
+            if bad in self.file_name or not valid:
                 valid = False
                 break
 
@@ -64,8 +82,11 @@ class TestFrame(wx.Frame):
         wx.Frame.__init__(self, None, -1)
         self.cwd = settings.Settings.pic_path
         self.tree = wx.TreeCtrl(self, style=wx.TR_HIDE_ROOT)
+        self.file_commands = ('open', 'delete')
+        self.folder_commands = ('create file', 'create folder', 'delete')
         self.root = self.tree.AddRoot("root")
         self.command_q = command_q
+        self.folders = []
         self.image_list = wx.ImageList(16, 16)
         self.tree.AssignImageList(self.image_list)
         self.path_item = {}
@@ -77,6 +98,15 @@ class TestFrame(wx.Frame):
 
         pub.subscribe(self.convert_to_tree, "update_tree")
         pub.subscribe(self.add_object, "create")
+        pub.subscribe(self.delete_object, "delete")
+        pub.subscribe(self.show_error, "error")
+
+    def show_error(self, error: str):
+        """
+        gets error and tells it to user
+        :param error: the error explanation
+        """
+        wx.MessageBox(error, "Error", wx.OK | wx.ICON_ERROR)
 
     def create_file_dialog(self, text: str, path: str):
         """
@@ -91,6 +121,14 @@ class TestFrame(wx.Frame):
             self.command_q.put((text, f'{path}\\{file_name}'))
         dialog.Destroy()
 
+    def delete_object(self, path: str):
+        """
+        gets path of object and deletes it from needed places
+        :param path: path of object
+        """
+        if path in self.path_item:
+            self.tree.Delete(self.path_item[path])
+
     def add_object(self, path: str, name: str, typ: str):
         if path not in self.path_item:
             return
@@ -100,6 +138,7 @@ class TestFrame(wx.Frame):
             full_path = f'{path}\\{name}'
             new_item = self.tree.AppendItem(dir_on, f'{name}', data=full_path)
             self.path_item[full_path] = new_item
+            self.folders.append(full_path)
             self.add_pic(new_item, name, True)
         else:
             full_path = f'{path}\\{name}.{typ}'
@@ -114,13 +153,19 @@ class TestFrame(wx.Frame):
         :param evt: event happened
         :return: None
         """
-        commands = ('create file', 'create folder', 'open')
+        item = evt.GetItem()
+        item_path = self.tree.GetItemData(item)
+        if item_path in self.folders:
+            commands = self.folder_commands
+        else:
+            commands = self.file_commands
+
         self.popupmenu = wx.Menu()
-        self.popupmenu.SetTitle("Choose present:")
-        print(evt.GetItem())
+        item_name = os.path.basename(item_path)
+        self.popupmenu.SetTitle(f'{item_name}:')
         for text in commands:
             self.popupmenu.Append(-1, text)
-            self.Bind(wx.EVT_MENU, lambda event, item_pressed=evt.GetItem(): self.command_selected(event, item_pressed))
+            self.Bind(wx.EVT_MENU, lambda event, item_pressed=item: self.command_selected(event, item_pressed))
 
         self.PopupMenu(self.popupmenu)
 
@@ -169,6 +214,7 @@ class TestFrame(wx.Frame):
             self.add_pic(new_item, element, folder)
 
             if folder:
+                self.folders.append(path)
                 self.convert_to_tree(dic, new_item)
 
     def add_pic(self, item, name: str, is_folder: bool):

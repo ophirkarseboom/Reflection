@@ -43,7 +43,6 @@ class MainUserClient:
         :return: None
         """
         user_path = self.file_handler.user_path[:-1]
-        cwd = user_path
         while True:
             print(self.folders)
             command, path_got = q.get()
@@ -64,9 +63,40 @@ class MainUserClient:
             elif command == 'open':
                 self.open(path_got)
 
+            elif command == 'delete':
+                self.delete(path_got)
+
             else:
                 print_nice('wrong input try again', 'red')
                 print()
+
+    def call_error(self, error: str):
+        """
+        gets error and sends it to graphic
+        :param error: error to show user
+        """
+        wx.CallAfter(pub.sendMessage, "error", error=error)
+
+
+    def delete(self, path: str):
+        """
+        gets path of file with its name and deletes it
+        :param path: path of file
+        return: None
+        """
+        if path in self.folders and '.' in os.path.basename(path):
+            self.call_error('cannot delete computers directory')
+            return
+
+        if self.file_handler.is_local(path):
+            local = self.file_handler.remove_ip(self.user_name, path)
+
+            # do local stuff deleting file creating file
+            self.file_handler.delete(local)
+            self.folders_remove(path)
+        else:
+            pass
+
 
 
 
@@ -135,9 +165,8 @@ class MainUserClient:
 
     def open(self, path: str):
         """
-        gets path of file with it's name and opens it
+        gets path of file with its name and opens it
         :param path: path of file
-        :param name:  name
         return:
         """
 
@@ -161,9 +190,28 @@ class MainUserClient:
 
             comm.send(protocol.pack_do_open_file(path))
 
-            
+
+    def folders_remove(self, path):
+        """
+        gets path and removes it from folders and tells graphic
+        :param path: path to delete
+        """
+        father_path, name = self.file_handler.split_path_last_part(path)
+        if path in self.folders:
+            del self.folders[path]
+
+        if father_path in self.folders and name in self.folders[father_path]:
+            self.folders[father_path].remove(name)
+
+        wx.CallAfter(pub.sendMessage, "delete", path=path)
 
     def folders_add(self, path, name, typ):
+        """
+        gets path and adds it to folders dict
+        :param path: path of father
+        :param name: name of file
+        :param typ: type of file/folder
+        """
         if path.endswith('\\'):
             path = path[:-1]
         if typ == 'fld':

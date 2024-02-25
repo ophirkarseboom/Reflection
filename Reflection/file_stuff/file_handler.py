@@ -1,7 +1,7 @@
 import ctypes
 import os
 from Reflection.settings import Settings
-
+import shutil
 
 class FileHandler:
     root = Settings.root
@@ -27,6 +27,17 @@ class FileHandler:
         """
         return path.startswith(self.user_path + self.my_ip) and os.path.exists(FileHandler.remove_ip(self.username, path))
 
+
+    @staticmethod
+    def delete(path: str):
+        """
+        gets path and deletes it from computer
+        :param path: path to delete
+        """
+        if os.path.isdir(path):
+            shutil.rmtree(path)
+        elif os.path.isfile(path):
+            os.remove(path)
     @staticmethod
     def split_path_last_part(path):
         """
