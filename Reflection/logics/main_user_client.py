@@ -245,7 +245,7 @@ class MainUserClient:
         else:
             print('could not create')
 
-    def handle_status_create(self, vars: list):
+    def handle_status_delete(self, vars: list):
         """
         gets status of creation and shows user what happened
         :param vars: status, location, type
