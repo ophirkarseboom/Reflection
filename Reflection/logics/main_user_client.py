@@ -11,28 +11,32 @@ from Reflection.settings import Settings
 import wx
 from pubsub import pub
 import time
-from Reflection.graphics.test import TestFrame
+from Reflection.graphics.graphics import MyFrame
 
 
 class MainUserClient:
 
-    def __init__(self, graphic_q):
+    def __init__(self):
         self.folders = {}
-        self.graphic_q = graphic_q
+
         self.server_rcv_q = Queue()
         self.client = ClientComm(Settings.server_ip, Settings.server_port, self.server_rcv_q, 6, 'U')
-        self.user_name = 'yotam'
+        self.user_name = ''
         self.file_handler = FileHandler(self.user_name)
         self.handle_tree = Queue()
         self.ip_comm = {str: ClientComm}
+
+        self.graphic_q = Queue()
 
         user_path = self.file_handler.user_path[:-1]
         self.folders = {user_path: [',']}
         threading.Thread(target=self.rcv_comm, args=(self.server_rcv_q,), daemon=True).start()
         threading.Thread(target=self.rcv_graphic, args=(self.graphic_q,), daemon=True).start()
 
-        self.do_register('12345')
-        self.do_connect('12345')
+        app = wx.App(False)
+        self.frame = MyFrame(self.graphic_q)
+        self.frame.Show()
+        app.MainLoop()
 
     def rcv_graphic(self, q: Queue):
         """
@@ -43,10 +47,10 @@ class MainUserClient:
         user_path = self.file_handler.user_path[:-1]
         while True:
             print(self.folders)
-            command, path_got = q.get()
+            command, param_got = q.get()
 
             if command == 'create file':
-                path, name = self.file_handler.split_path_last_part(path_got)
+                path, name = self.file_handler.split_path_last_part(param_got)
                 print('path:', path)
                 name = name.split('.')
                 typ = name[-1]
@@ -55,15 +59,20 @@ class MainUserClient:
                 print('typ:', typ)
                 self.create(path, name, typ)
             elif command == 'create folder':
-                path, name = self.file_handler.split_path_last_part(path_got)
+                path, name = self.file_handler.split_path_last_part(param_got)
                 self.create(path, name, 'fld')
 
             elif command == 'open':
-                self.open(path_got)
+                self.open(param_got)
 
             elif command == 'delete':
-                self.delete(path_got)
-
+                self.delete(param_got)
+            elif command == 'login':
+                if param_got.count(',') != 1:
+                    self.call_error('problem with password or username')
+                    continue
+                self.user_name, password = param_got.split(',')
+                self.do_connect(password)
             else:
                 print_nice('wrong input try again', 'red')
                 print()
@@ -282,6 +291,7 @@ class MainUserClient:
             self.file_handler.create_root()
             thread_handle_tree = threading.Thread(target=self.get_file_tree, daemon=True)
             thread_handle_tree.start()
+            self.frame.go_to_tree()
 
         else:
             print('could not sign in')
@@ -360,9 +370,4 @@ def get_mac_address():
 
 
 if __name__ == '__main__':
-    graphic_q = Queue()
-    MainUserClient(graphic_q)
-    a = wx.App(False)
-    f = TestFrame(graphic_q)
-    f.Show()
-    a.MainLoop()
+    MainUserClient()
