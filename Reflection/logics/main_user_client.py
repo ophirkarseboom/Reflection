@@ -22,14 +22,13 @@ class MainUserClient:
         self.server_rcv_q = Queue()
         self.client = ClientComm(Settings.server_ip, Settings.server_port, self.server_rcv_q, 6, 'U')
         self.user_name = ''
-        self.file_handler = FileHandler(self.user_name)
+        self.file_handler = None
         self.handle_tree = Queue()
         self.ip_comm = {str: ClientComm}
 
         self.graphic_q = Queue()
 
-        user_path = self.file_handler.user_path[:-1]
-        self.folders = {user_path: [',']}
+
         threading.Thread(target=self.rcv_comm, args=(self.server_rcv_q,), daemon=True).start()
         threading.Thread(target=self.rcv_graphic, args=(self.graphic_q,), daemon=True).start()
 
@@ -44,7 +43,6 @@ class MainUserClient:
         :param q: q gets from graphic
         :return: None
         """
-        user_path = self.file_handler.user_path[:-1]
         while True:
             print(self.folders)
             command, param_got = q.get()
@@ -67,12 +65,26 @@ class MainUserClient:
 
             elif command == 'delete':
                 self.delete(param_got)
+
+            elif command == 'rename':
+                self.rename(param_got)
+
             elif command == 'login':
                 if param_got.count(',') != 1:
                     self.call_error('problem with password or username')
                     continue
                 self.user_name, password = param_got.split(',')
+                print('self.username:', self.user_name)
                 self.do_connect(password)
+
+            elif command == 'register':
+                if param_got.count(',') != 1 or '\\' in param_got:
+                    self.call_error('problem with password or username')
+                    continue
+                self.user_name, password = param_got.split(',')
+                print('self.username:', self.user_name)
+                self.do_register(password)
+
             else:
                 print_nice('wrong input try again', 'red')
                 print()
@@ -127,7 +139,7 @@ class MainUserClient:
         gets file tree and lets user navigate through it
         :return: None
         """
-
+        print('user_path:', self.file_handler.user_path)
         user_path = self.file_handler.user_path[:-1]
         new_folders = {}
         while True:
@@ -275,9 +287,12 @@ class MainUserClient:
         """
         success = vars[0]
         if success == 'ok':
+            wx.CallAfter(pub.sendMessage, 'notification', notification='great you can now login with this name and '
+                                                                       'password')
             print('registered')
         else:
-            print('could not register')
+            self.call_error('username already exists')
+
 
     def handle_status_login(self, vars):
         """
@@ -288,12 +303,17 @@ class MainUserClient:
         success = vars[0]
         if success == 'ok':
             print('you are signed in')
+            self.file_handler = FileHandler(self.user_name)
+            user_path = self.file_handler.user_path[:-1]
+            self.folders = {user_path: [',']}
             self.file_handler.create_root()
-            thread_handle_tree = threading.Thread(target=self.get_file_tree, daemon=True)
-            thread_handle_tree.start()
-            self.frame.go_to_tree()
+            threading.Thread(target=self.get_file_tree, daemon=True).start()
+
+            # grpahic
+            wx.CallAfter(pub.sendMessage, 'login')
 
         else:
+            self.call_error('username or password does not exist')
             print('could not sign in')
 
     def handle_got_file_tree(self, vars):

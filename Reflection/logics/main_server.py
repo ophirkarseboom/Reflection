@@ -1,5 +1,5 @@
 import queue
-
+from Reflection.settings import Settings
 from Reflection.comms import server_comm
 from Reflection.database import db
 from Reflection.protocols import server_protocol as protocol
@@ -9,7 +9,7 @@ from Reflection.file_stuff.file_handler import FileHandler
 
 
 
-def handle_disconnect(client_ip:str, called_by_server_comm: bool):
+def handle_disconnect(client_ip: str, called_by_server_comm: bool):
     """
     disconnect client by ip and removes from dictionaries
     :param client_ip: ip address
@@ -17,7 +17,10 @@ def handle_disconnect(client_ip:str, called_by_server_comm: bool):
     """
 
     # calls send_remove to all users related to ip
-    # tbd
+    for ip in user_comps:
+        if client_ip in user_comps[ip]:
+            username = get_key_by_value(username_ip, ip)
+            server_comm.send(ip, protocol.pack_status_delete(True, f'{Settings.root}{username}\\{client_ip[0]}'))
 
     if client_ip in ip_mac:
         del ip_mac[client_ip]

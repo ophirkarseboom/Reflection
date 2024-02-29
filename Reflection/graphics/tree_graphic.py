@@ -5,13 +5,14 @@ import os
 from pubsub import pub
 from Reflection import settings
 from queue import Queue
+from Reflection.graphics import notification
 
 class CreateFileDialog(wx.Dialog):
     def __init__(self, parent, title: str):
         super(CreateFileDialog, self).__init__(parent, title=title, size=(300, 150))
 
         self.is_folder = title.lower().endswith('folder')
-        self.forbidden = ('*', ',', '\\', '/', '[', ']', '{', '}', '?')
+        self.forbidden = ('*', ',', '\\', '/', '[', ']', '{', '}', '?', '<', '>', ' ', ':', '|')
         self.file_name = ''
         self.panel = wx.Panel(self)
         vbox = wx.BoxSizer(wx.VERTICAL)
@@ -43,7 +44,7 @@ class CreateFileDialog(wx.Dialog):
         if self.valid_input():
             self.EndModal(wx.ID_OK)
         else:
-            wx.MessageBox("name is not valid", "Error", wx.OK | wx.ICON_ERROR)
+            notification.show_error('name is not valid')
 
 
     def on_cancel(self, event):
@@ -65,24 +66,27 @@ class CreateFileDialog(wx.Dialog):
         if self.is_folder:
             forbidden.append('.')
         else:
-            valid = '.' in self.file_name
+            valid = self.file_name.count('.') == 1
         for bad in forbidden:
             if bad in self.file_name or not valid:
                 valid = False
                 break
 
         return valid
-class TreeFrame(wx.Frame):
+
+
+class TreePanel(wx.Frame):
     open_folder_name = 'open_folder.png'
     close_folder_name = 'close_folder.png'
     file_name = 'file.png'
 
-    def __init__(self, command_q: Queue):
-        wx.Frame.__init__(self, None, -1)
+    def __init__(self, parent, command_q: Queue):
+        # wx.Panel.__init__(self, parent, -1)
+        wx.Frame.__init__(self, parent, pos=wx.DefaultPosition)
         self.cwd = settings.Settings.pic_path
         self.tree = wx.TreeCtrl(self, style=wx.TR_HIDE_ROOT)
-        self.file_commands = ('open', 'delete')
-        self.folder_commands = ('create file', 'create folder', 'delete')
+        self.file_commands = ('open', 'delete', 'rename')
+        self.folder_commands = ('create file', 'create folder', 'delete', 'rename')
         self.root = self.tree.AddRoot("root")
         self.command_q = command_q
         self.folders = []
@@ -98,15 +102,9 @@ class TreeFrame(wx.Frame):
         pub.subscribe(self.convert_to_tree, "update_tree")
         pub.subscribe(self.add_object, "create")
         pub.subscribe(self.delete_object, "delete")
-        pub.subscribe(self.show_error, "error")
+        pub.subscribe(notification.show_error, "error")
 
-    @staticmethod
-    def show_error(error: str):
-        """
-        gets error and tells it to user
-        :param error: the error explanation
-        """
-        wx.MessageBox(error, "Error", wx.OK | wx.ICON_ERROR)
+        self.Show()
 
     def create_file_dialog(self, text: str, path: str):
         """
@@ -192,6 +190,7 @@ class TreeFrame(wx.Frame):
         :param father: a parent
         :return: None
         """
+        print('dict:', dic)
         if not father:
             father_path = next(iter(dic.keys()))
             father = self.root
@@ -199,6 +198,7 @@ class TreeFrame(wx.Frame):
             father_path = self.tree.GetItemData(father)
 
         folder = True
+        print('father path:', father_path)
         if father_path not in dic:
             return
 
@@ -216,6 +216,7 @@ class TreeFrame(wx.Frame):
             if folder:
                 self.folders.append(path)
                 self.convert_to_tree(dic, new_item)
+
 
     def add_pic(self, item, name: str, is_folder: bool):
         """
@@ -242,6 +243,7 @@ class TreeFrame(wx.Frame):
         """
         print("hello")
         print('Double clicked on', self.tree.GetItemData(evt.GetItem()))
+        print(self.path_item)
         item = evt.GetItem()
         if self.tree.IsExpanded(item):
             self.tree.Collapse(item)
@@ -275,5 +277,5 @@ class TreeFrame(wx.Frame):
 
 if __name__ == '__main__':
     app = wx.App(False)
-    first = MyFrame(None)
+    first = TreePanel(None, Queue())
     app.MainLoop()

@@ -5,11 +5,14 @@ import os
 from pubsub import pub
 from Reflection import settings
 from queue import Queue
-from Reflection.graphics.tree_graphic import TreeFrame
+from Reflection.graphics.tree_graphic import TreePanel
+from Reflection.graphics import notification
+
 
 class MyFrame(wx.Frame):
+
     def __init__(self, logic_q: Queue):
-        super(MyFrame, self).__init__(None, title="Example for SDI", size=(500, 500))
+        super(MyFrame, self).__init__(None, title="", size=(500, 500))
         # create status bar
         self.CreateStatusBar(1)
         self.SetStatusText("Developed by ophir")
@@ -17,43 +20,38 @@ class MyFrame(wx.Frame):
         self.panel = MainPanel(self)
         self.login = LoginPanel(self)
         self.register = RegisterPanel(self)
-        self.panel.Show()
-        self.login.Hide()
+        self.logic_q = logic_q
+        # self.tree = TreePanel(self, self.logic_q)
+
+        # self.panel.Show()
+
         box = wx.BoxSizer(wx.VERTICAL)
         box.Add(self.panel, 1, wx.EXPAND)
         box.Add(self.login, 1, wx.EXPAND)
+        box.Add(self.register, 1, wx.EXPAND)
+        # box.Add(self.tree, 1, wx.EXPAND)
 
-        self.logic_q = logic_q
 
         # arrange the frame
         self.SetSizer(box)
         self.Layout()
         self.Show()
 
-        pub.subscribe(TreeFrame.show_error, "error")
-        pub.subscribe(self.go_to_tree, "login")
-
-    def go_to_login(self, event):
-        self.panel.Hide()
-        self.login.Show()
-
-    def go_to_register(self, event):
-        self.panel.Hide()
-        self.register.Show()
-
-    def go_back(self, event):
-        if self.login.Shown:
-            self.login.Hide()
-        else:
-            self.register.Hide()
         self.panel.Show()
+        pub.subscribe(notification.show_error, "error")
+        pub.subscribe(notification.show_notification, "notification")
 
-    def go_to_tree(self):
-        self.Hide()
-        frame = TreeFrame(self.logic_q)
-        frame.Show()
-        self.Layout()
 
+    def change_panel(self, current, new_panel):
+        """
+        switches between panels
+        :param current: current panel working on
+        :param new_panel: panel to switch to
+        :return: None
+        """
+        self.SetStatusText("")
+        current.Hide()
+        new_panel.Show()
 
 
 class MainPanel(wx.Panel):
@@ -64,11 +62,12 @@ class MainPanel(wx.Panel):
         self.parent = parent
         sizer = wx.BoxSizer(wx.VERTICAL)
 
+
         btnBox = wx.BoxSizer(wx.VERTICAL)
         loginBtn = wx.Button(self, wx.ID_ANY, label="Login", size=(200, 80))
         registerBtn = wx.Button(self, wx.ID_ANY, label="Register", size=(200, 80))
-        loginBtn.Bind(wx.EVT_BUTTON, self.frame.go_to_login)
-        registerBtn.Bind(wx.EVT_BUTTON, self.frame.go_to_register)
+        loginBtn.Bind(wx.EVT_BUTTON, self.handle_login)
+        registerBtn.Bind(wx.EVT_BUTTON, self.handle_register)
         btnBox.Add(loginBtn, 0, wx.ALL, 5)
         btnBox.Add(registerBtn, 0, wx.ALL, 5)
 
@@ -78,7 +77,24 @@ class MainPanel(wx.Panel):
         # arrange the screen
         self.SetSizer(sizer)
         self.Layout()
-        self.Show()
+        self.Hide()
+
+    def handle_login(self, evt):
+        """
+        handles when client presses logs in
+        :param evt: event
+        :return: None
+        """
+        self.frame.change_panel(self, self.frame.login)
+
+    def handle_register(self, evt):
+        """
+        handles when client presses register
+        :param evt: event
+        :return: None
+        """
+        self.frame.change_panel(self, self.frame.register)
+
 
 class RegisterPanel(wx.Panel):
     def __init__(self, parent):
@@ -108,7 +124,7 @@ class RegisterPanel(wx.Panel):
         btnBox = wx.BoxSizer(wx.HORIZONTAL)
 
         backBtn = wx.Button(self, wx.ID_ANY, label="back", size=(100, 40))
-        backBtn.Bind(wx.EVT_BUTTON, self.parent.go_back)
+        backBtn.Bind(wx.EVT_BUTTON, self.handle_back)
         btnBox.Add(backBtn, 1, wx.ALL, 5)
 
         regBtn = wx.Button(self, wx.ID_ANY, label="Register", size=(100, 40))
@@ -128,8 +144,25 @@ class RegisterPanel(wx.Panel):
         self.Hide()
 
     def handle_reg(self, event):
-        self.parent.SetStatusText("hello")
-        # self.parent.registration.Show()
+        """
+        sends to logic username and password to register
+        :param event: event got
+        :return: None
+        """
+        username = self.nameField.GetValue()
+        password = self.passField.GetValue()
+        if not username or not password:
+            notification.show_error('must enter username and password')
+        else:
+            self.parent.logic_q.put(('register', f'{username},{password}'))
+
+    def handle_back(self, evt):
+        """
+        gets client back to main panel
+        :param evt: event got
+        :return: None
+        """
+        self.parent.change_panel(self, self.parent.panel)
 
 
 class LoginPanel(wx.Panel):
@@ -162,7 +195,7 @@ class LoginPanel(wx.Panel):
         loginBtn.Bind(wx.EVT_BUTTON, self.handle_login)
 
         backBtn = wx.Button(self, wx.ID_ANY, label="back", size=(100, 40))
-        backBtn.Bind(wx.EVT_BUTTON, self.parent.go_back)
+        backBtn.Bind(wx.EVT_BUTTON, self.handle_back)
         btnBox.Add(backBtn, 1, wx.ALL, 5)
         btnBox.Add(loginBtn, 0, wx.ALL, 5)
 
@@ -178,7 +211,14 @@ class LoginPanel(wx.Panel):
         self.Layout()
         self.Hide()
 
+        pub.subscribe(self.go_to_tree, "login")
+
     def handle_login(self, event):
+        """
+        sends to logic login with username and password
+        :param event: event got
+        :return: None
+        """
         username = self.nameField.GetValue()
         password = self.passField.GetValue()
         if not username or not password:
@@ -188,7 +228,23 @@ class LoginPanel(wx.Panel):
             self.parent.logic_q.put(('login', f'{username},{password}'))
 
 
+    def handle_back(self, evt):
+        """
+        gets back to main panel
+        :param evt: event got
+        :return: None
+        """
+        self.parent.change_panel(self, self.parent.panel)
 
+    def go_to_tree(self):
+        """
+        goes to tree panel
+        :return: None
+        """
+        print('got to go_to_tree')
+
+        self.parent.Hide()
+        TreePanel(self, self.parent.logic_q)
 
 if __name__ == '__main__':
     graphic_q = Queue()

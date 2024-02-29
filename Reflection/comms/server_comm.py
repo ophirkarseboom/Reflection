@@ -42,7 +42,7 @@ class ServerComm:
 
                     client, addr = self.socket.accept()
                     print(f'{addr[0]} connected!')
-                    threading.Thread(target=self._key_exchange(client, addr[0]))
+                    threading.Thread(target=self._key_exchange, args=(client, addr[0])).start()
                     continue
 
                 # exist client
@@ -168,11 +168,12 @@ class ServerComm:
         try:
             length = int(client.recv(self.send_len).decode())
             data = client.recv(length)
+            data = self.a_encrypt.decrypt_msg(data)
         except Exception as e:
             print("error in key_exchange: " + str(e))
             self.disconnect_client(client)
         else:
-            data = self.a_encrypt.decrypt_msg(data)
+
             self.open_clients[client] = [ip, symmetrical_encryption.SymmetricalEncryption(data[2:])]
 
             # main server
