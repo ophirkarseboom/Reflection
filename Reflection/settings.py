@@ -3,7 +3,7 @@ from uuid import getnode
 import socket
 
 class Settings:
-    server_ip = '192.168.4.96'
+    server_ip = '192.168.4.95'
     server_port = 2000
     root = 'D:\\reflection\\'
     pear_port = 2500

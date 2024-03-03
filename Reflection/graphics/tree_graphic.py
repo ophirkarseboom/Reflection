@@ -8,11 +8,14 @@ from queue import Queue
 from Reflection.graphics import notification
 
 class CreateFileDialog(wx.Dialog):
-    def __init__(self, parent, title: str):
+    def __init__(self, parent, title: str, is_folder):
+
         super(CreateFileDialog, self).__init__(parent, title=title, size=(300, 150))
 
-        self.is_folder = title.lower().endswith('folder')
-        self.forbidden = ('*', ',', '\\', '/', '[', ']', '{', '}', '?', '<', '>', ' ', ':', '|')
+        print()
+        self.is_folder = is_folder
+        print('is_folder:', self.is_folder)
+
         self.file_name = ''
         self.panel = wx.Panel(self)
         vbox = wx.BoxSizer(wx.VERTICAL)
@@ -41,10 +44,7 @@ class CreateFileDialog(wx.Dialog):
         :param event: event happened
         """
         self.file_name = self.text_ctrl.GetValue()
-        if self.valid_input():
-            self.EndModal(wx.ID_OK)
-        else:
-            notification.show_error('name is not valid')
+        self.EndModal(wx.ID_OK)
 
 
     def on_cancel(self, event):
@@ -54,25 +54,6 @@ class CreateFileDialog(wx.Dialog):
         """
         self.EndModal(wx.ID_CANCEL)
 
-    def valid_input(self):
-        """
-        check if input is up to standard
-        :return: if input is valid or not
-        """
-        valid = True
-
-        # temp
-        forbidden = list(self.forbidden)
-        if self.is_folder:
-            forbidden.append('.')
-        else:
-            valid = self.file_name.count('.') == 1
-        for bad in forbidden:
-            if bad in self.file_name or not valid:
-                valid = False
-                break
-
-        return valid
 
 
 class TreePanel(wx.Frame):
@@ -93,6 +74,7 @@ class TreePanel(wx.Frame):
         self.image_list = wx.ImageList(16, 16)
         self.tree.AssignImageList(self.image_list)
         self.path_item = {}
+        self.forbidden = ('*', ',', '\\', '/', '[', ']', '{', '}', '?', '<', '>', ' ', ':', '|')
 
         self.tree.Bind(wx.EVT_TREE_ITEM_ACTIVATED, self.on_double_clicked)
         self.tree.Bind(wx.EVT_TREE_ITEM_EXPANDED, self.on_expanded)
@@ -106,17 +88,61 @@ class TreePanel(wx.Frame):
 
         self.Show()
 
-    def create_file_dialog(self, text: str, path: str):
+    def valid_input(self, file_name: str, is_folder: bool):
+        """
+        check if input is up to standard
+        :return: if input is valid or not
+        """
+        valid = True
+        # temp
+        forbidden = list(self.forbidden)
+
+        if is_folder:
+            forbidden.append('.')
+        else:
+            valid = file_name.count('.') == 1
+        for bad in forbidden:
+            if bad in file_name or not valid:
+                valid = False
+                break
+
+        if len(file_name) > 30:
+            valid = False
+        return valid
+
+
+    def create_file_dialog(self, command: str, path: str):
         """
         creates file dialog and sends answer to logic
-        :param text: command
+        :param command: command
         :param path:
         :return:
         """
-        dialog = CreateFileDialog(self, text.upper())
-        if dialog.ShowModal() == wx.ID_OK:
-            file_name = dialog.file_name
-            self.command_q.put((text, f'{path}\\{file_name}'))
+        dialog_title = command + ' '
+        if command.startswith('create'):
+            dialog_title += f'in {os.path.basename(path)}:'
+            is_folder = command.endswith('folder')
+        elif command == 'rename':
+            dialog_title += f'{os.path.basename(path)} to:'
+            is_folder = path in self.folders
+
+        else:
+            # temp
+            is_folder = False
+        while True:
+            dialog = CreateFileDialog(self, dialog_title.upper(), is_folder)
+            if dialog.ShowModal() == wx.ID_OK:
+                file_name = dialog.file_name
+                full_path = f'{path}\\{file_name}'
+                if not self.valid_input(file_name, is_folder):
+                    notification.show_error(f'name "{file_name}" is not valid')
+                elif full_path in self.path_item:
+                    notification.show_error(f'"{file_name}" already exists in this directory')
+                else:
+                    self.command_q.put((command, full_path))
+                    break
+            else:
+                break
         dialog.Destroy()
 
     def delete_object(self, path: str):
@@ -161,8 +187,8 @@ class TreePanel(wx.Frame):
         self.popupmenu = wx.Menu()
         item_name = os.path.basename(item_path)
         self.popupmenu.SetTitle(f'{item_name}:')
-        for text in commands:
-            self.popupmenu.Append(-1, text)
+        for command in commands:
+            self.popupmenu.Append(-1, command)
             self.Bind(wx.EVT_MENU, lambda event, item_pressed=item: self.command_selected(event, item_pressed))
 
         self.PopupMenu(self.popupmenu)
@@ -177,8 +203,9 @@ class TreePanel(wx.Frame):
         id_selected = evt.GetId()
         obj = evt.GetEventObject()
         text = obj.GetLabel(id_selected)
+        print('text:', text)
         path = self.tree.GetItemData(item)
-        if text.startswith('create'):
+        if text.startswith('create') or text == 'rename':
             self.create_file_dialog(text, path)
         else:
             self.command_q.put((text, path))

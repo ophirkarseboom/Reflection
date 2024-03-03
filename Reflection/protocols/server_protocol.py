@@ -99,7 +99,7 @@ def pack_status_rename(status: bool, path: str, new_name: str):
     else:
         packed += 'no'
 
-    return packed
+    return f'{packed},{path},{new_name}'
 
 
 def pack_status_delete(status: bool, location: str):

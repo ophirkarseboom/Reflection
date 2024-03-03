@@ -61,10 +61,12 @@ def pack_status_create(status: bool, location: str, typ: str):
     return f'{packed},{location},{typ}'
 
 
-def pack_status_rename(status: bool):
+def pack_status_rename(status: bool, location: str, new_name: str):
     """
     gets a boolean that tells if action worked or not and returns the packed str
     :param status: boolean (success of failure)
+    :param location: location of renaming
+    :param new_name: new name of file\folder
     :return: packed str
     """
     packed = '22'
@@ -73,7 +75,7 @@ def pack_status_rename(status: bool):
     else:
         packed += 'no'
 
-    return packed
+    return f'{packed},{location},{new_name}'
 
 
 def pack_status_delete(status: bool, location: str):

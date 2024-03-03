@@ -30,6 +30,9 @@ class ServerComm:
         threading.Thread(target=self._main_loop).start()
 
     def _main_loop(self):
+        """
+        waiting for clients to connect and puts in queue messages got from clients
+        """
         self.socket.bind(("0.0.0.0", self.port))
         self.socket.listen(3)
         self.is_running = True
@@ -124,10 +127,11 @@ class ServerComm:
         if client in self.receiving_files:
             self.receiving_files.remove(client)
 
-    def disconnect_client(self, ip):
+    def disconnect_client(self, ip, from_logic=False):
         """
         gets client or ip to disconnect informs server and calls _disconnect_client
         :param ip: ip to disconnect
+        :param from_logic: is called from logic
         :return: None
         """
         if type(ip).__name__ == 'str' or type(ip).__name__ == 'tuple':
@@ -137,7 +141,8 @@ class ServerComm:
             if ip in self.open_clients:
                 ip = self.open_clients[client][0]
 
-        self.rcv_q.put((ip, 'close'))
+        if not from_logic:
+            self.rcv_q.put((ip, 'close'))
         self._disconnect_client(client)
 
     def _disconnect_client(self, client):
@@ -203,8 +208,6 @@ class ServerComm:
             else:
                 self.open_clients[client][0] = (ip, typ)
                 print('finished transferring client type')
-
-
 
 
     def _find_socket_by_ip(self, ip):

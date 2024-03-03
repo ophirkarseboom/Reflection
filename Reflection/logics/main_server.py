@@ -16,7 +16,7 @@ def handle_disconnect(client_ip: str, called_by_server_comm: bool):
     :return: None
     """
 
-    # calls send_remove to all users related to ip
+    # calls to delete ip to all users related to ip
     for ip in user_comps:
         if client_ip in user_comps[ip]:
             username = get_key_by_value(username_ip, ip)
@@ -39,8 +39,7 @@ def handle_disconnect(client_ip: str, called_by_server_comm: bool):
                 break
 
     if not called_by_server_comm:
-        server_comm.disconnect_client(client_ip)
-        rcv_q.get()
+        server_comm.disconnect_client(client_ip, True)
 
 def handle_register(ip: str, vars: list):
     """
@@ -55,6 +54,7 @@ def handle_register(ip: str, vars: list):
     user, password = vars
     to_send = protocol.pack_status_register(db.add_user(user, password))
     server_comm.send(ip, to_send)
+
 
 def handle_sign_in(user_ip: str, vars: list):
     """
@@ -187,6 +187,49 @@ def got_create(got_ip: str, vars: str):
     location = FileHandler.remove_ip(user_got, location)
     server_comm.send(ip_to_send, protocol.pack_do_create(location, typ))
 
+
+def got_rename(got_ip: str, vars: str):
+    """
+    sending appropriate client to rename object
+    :param got_ip: ip sent from
+    :param vars: location of object ot rename and name to rename it to
+    :return: None
+    """
+
+    if len(vars) != 2:
+
+        handle_disconnect(got_ip, False)
+        return
+
+    location, new_name = vars
+    user_got = get_key_by_value(username_ip, got_ip)
+    ip_to_send = FileHandler.extract_ip(user_got, location)
+    ip_to_send = (ip_to_send, 'G')
+    location = FileHandler.remove_ip(user_got, location)
+    server_comm.send(ip_to_send, protocol.pack_do_rename(location, new_name))
+
+
+def handle_status_rename(got_ip: str, vars: str):
+    """
+    sending user if renaming was success
+    :param got_ip: ip got from
+    :param vars: status, location, new name
+    :return: None
+    """
+    if len(vars) != 3:
+        handle_disconnect(got_ip, False)
+        return
+
+    status, location, new_name = vars
+    print('status:', status)
+    username = location.replace(FileHandler.root, '')
+    username = username[:username.index('\\')]
+
+    ip_to_send = username_ip[username]
+    location = FileHandler.insert_ip(location, username, got_ip[0])
+    status = status == 'ok'
+    server_comm.send(ip_to_send, protocol.pack_status_rename(status, location, new_name))
+
 def handle_status_create(got_ip: str, vars: str):
     """
     sending user if creation was success
@@ -206,6 +249,7 @@ def handle_status_create(got_ip: str, vars: str):
 
     ip_to_send = username_ip[username]
     location = FileHandler.insert_ip(location, username, got_ip[0])
+    status = status == 'ok'
     server_comm.send(ip_to_send, protocol.pack_status_create(status, location, typ))
 
 def handle_status_delete(got_ip: str, vars: str):
@@ -225,6 +269,7 @@ def handle_status_delete(got_ip: str, vars: str):
 
     ip_to_send = username_ip[username]
     location = FileHandler.insert_ip(location, username, got_ip[0])
+    status = status == 'ok'
     server_comm.send(ip_to_send, protocol.pack_status_delete(status, location))
 
 
@@ -264,7 +309,7 @@ if __name__ == '__main__':
     rcv_q = queue.Queue()
     server_port = 2000
     server_comm = server_comm.ServerComm(server_port, rcv_q, 6)
-    commands = {'01': handle_register, '03': handle_sign_in, '06': got_create, '10': got_delete, '20': handle_got_file_tree, '24': handle_status_delete, '29': handle_got_mac, '33': handle_status_create}
+    commands = {'01': handle_register, '03': handle_sign_in, '06': got_create, '08': got_rename, '10': got_delete, '20': handle_got_file_tree, '22': handle_status_rename, '24': handle_status_delete, '29': handle_got_mac, '33': handle_status_create}
     ip_mac = {}
     user_comps = {}
     username_ip = {}

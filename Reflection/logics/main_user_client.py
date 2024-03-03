@@ -22,7 +22,6 @@ class MainUserClient:
         self.server_rcv_q = Queue()
         self.client = ClientComm(Settings.server_ip, Settings.server_port, self.server_rcv_q, 6, 'U')
         self.user_name = ''
-        self.file_handler = None
         self.handle_tree = Queue()
         self.ip_comm = {str: ClientComm}
 
@@ -46,7 +45,7 @@ class MainUserClient:
         while True:
             print(self.folders)
             command, param_got = q.get()
-
+            print('command:', command)
             if command == 'create file':
                 path, name = self.file_handler.split_path_last_part(param_got)
                 print('path:', path)
@@ -67,7 +66,10 @@ class MainUserClient:
                 self.delete(param_got)
 
             elif command == 'rename':
-                self.rename(param_got)
+                path, new_name = self.file_handler.split_path_last_part(param_got)
+                print('path:', path)
+                print('new name:', new_name)
+                self.rename(path, new_name)
 
             elif command == 'login':
                 if param_got.count(',') != 1:
@@ -86,8 +88,57 @@ class MainUserClient:
                 self.do_register(password)
 
             else:
-                print_nice('wrong input try again', 'red')
                 print()
+
+    def handle_status_rename(self, vars: list):
+        """
+        gets status of renaming and shows user what happened
+        :param vars: status, location, new_name
+        :return: None
+        """
+        status, location, new_name = vars
+        if '.' in new_name:
+            just_name, typ = new_name.split('.')
+        else:
+            typ = 'fld'
+            just_name = new_name.split('.')[0]
+        # do local stuff of creating file
+        if status == 'ok':
+            self.folders_remove(location)
+            folder_path, _ = self.file_handler.split_path_last_part(location)
+            self.folders_add(folder_path, just_name, typ)
+        else:
+            self.call_error(f'could not rename to "{new_name}"')
+
+    def rename(self, path: str, new_name: str):
+        """
+        gets path and typ, creates it
+        :param path: path of object to create
+        :return: None
+        """
+        # trying to change computers folder
+        if path in self.folders and '.' in os.path.basename(path):
+            self.call_error('cannot rename computers directory')
+            return
+
+        if self.file_handler.is_local(path):
+            local = self.file_handler.remove_ip(self.user_name, path)
+            if '.' in new_name:
+                just_name, typ = new_name.split('.')
+            else:
+                typ = 'fld'
+                just_name = new_name.split('.')[0]
+            # do local stuff of creating file
+            if self.file_handler.rename(local, new_name):
+
+                self.folders_remove(path)
+                folder_path, _ = self.file_handler.split_path_last_part(path)
+                self.folders_add(folder_path, just_name, typ)
+            else:
+                self.call_error(f'could not rename to "{new_name}"')
+        else:
+            self.client.send(protocol.pack_do_rename(path, new_name))
+
 
     def call_error(self, error: str):
         """
@@ -102,6 +153,7 @@ class MainUserClient:
         :param path: path of file
         return: None
         """
+        # trying to change computers folder
         if path in self.folders and '.' in os.path.basename(path):
             self.call_error('cannot delete computers directory')
             return
@@ -122,7 +174,7 @@ class MainUserClient:
         """
 
         commands = {'02': self.handle_status_register, '04': self.handle_status_login, '05': self.handle_got_file_tree,
-                    '07': self.handle_status_create, '17': self.handle_status_open, '11': self.handle_status_delete}
+                    '09': self.handle_status_rename, '07': self.handle_status_create, '17': self.handle_status_open, '11': self.handle_status_delete}
         while True:
             data = protocol.unpack(q.get())
             if not data:
@@ -342,46 +394,6 @@ class MainUserClient:
         to_send = protocol.pack_sign_in(self.user_name, password, get_mac_address())
         self.client.send(to_send)
 
-
-def print_nice(text, color):
-    bold = '1m'
-    red = '91m'
-    yellow = '93m'
-    blue = '94m'
-    if color == 'red':
-        color = red
-    elif color == 'bold':
-        color = bold
-    elif color == 'yellow':
-        color = yellow
-    elif color == 'blue':
-        color = blue
-    else:
-        color = '0m'
-
-    bold_text = f"\033[{color}" + text + "\033[0m"
-    print(bold_text, end='\t')
-
-
-def print_directory(fold, folders):
-    print_nice(fold, 'yellow')
-    print()
-    bold = True
-    count = 0
-
-    for obj in folders[fold]:
-        if obj == ',':
-            bold = False
-        else:
-            obj = "{:<40}".format(obj)
-            count += 1
-            if bold:
-                print_nice(obj, 'bold')
-            else:
-                print(obj, end='\t')
-            if count == 4:
-                print()
-                count = 0
 
 
 def get_mac_address():

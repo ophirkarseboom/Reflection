@@ -27,6 +27,28 @@ class FileHandler:
         """
         return path.startswith(self.user_path + self.my_ip) and os.path.exists(FileHandler.remove_ip(self.username, path))
 
+    @staticmethod
+    def rename(path: str, new_name: str):
+        """
+        gets path and renames it
+        :param path: path to rename
+        :param new_name: new name to rename to
+        :return: if renamed or not
+        """
+        rename = False
+        new_path, _ = FileHandler.split_path_last_part(path)
+        new_path += f'\\{new_name}'
+        print('new_path:', new_path)
+        if os.path.exists(path) and not os.path.exists(new_path):
+            try:
+                os.rename(path, new_path)
+            except Exception:
+                rename = False
+            else:
+                rename = True
+
+        return rename
+
 
     @staticmethod
     def delete(path: str):

@@ -43,25 +43,21 @@ class ClientComm:
             self.server.connect((self.server_ip, self.port))
         except Exception as e:
             sys.exit("server is down, try again later")
+
+        self._key_exchange()
         while True:
             try:
                 length = int(self.server.recv(self.send_len).decode())
                 data = self.server.recv(length)
-
             except Exception as e:
                 sys.exit("server is down, try again later")
 
             else:
-                if self.symmetric:
-                    data = self.symmetric.decrypt(data)
-                    if data[:2] in self.file_receive_opcodes:
-                        threading.Thread(target=self._receive_file(data))
-                    else:
-                        self.rcv_q.put(data)
-
-                # key exchange
+                data = self.symmetric.decrypt(data)
+                if data[:2] in self.file_receive_opcodes:
+                    threading.Thread(target=self._receive_file(data))
                 else:
-                    self._key_exchange(data[2:])
+                    self.rcv_q.put(data)
 
 
     def _receive_file(self, header):
@@ -122,15 +118,29 @@ class ClientComm:
                     self.rcv_q.put(general_client_protocol.pack_status_open_file(True, path))
 
 
-    def _key_exchange(self, public_key):
+    def _key_exchange(self):
         """
         gets server's public key and sends server symmetric key
-        :param public_key: server's public key
         :return: None
         """
+        try:
+            length = int(self.server.recv(self.send_len).decode())
+            data = self.server.recv(length)
 
+        except Exception as e:
+            sys.exit("server is down, try again later")
+
+        public_key = data[2:]
+        print('pulic key:', public_key)
         self.symmetric = symmetrical_encryption.SymmetricalEncryption()
-        self.send(general_client_protocol.pack_key(self.symmetric.key), public_key)
+        key_to_send = general_client_protocol.pack_key(self.symmetric.key)
+        key_to_send = AsymmetricEncryption.encrypt_msg(key_to_send, public_key)
+        try:
+            self.server.send(str(len(key_to_send)).zfill(self.send_len).encode())
+            self.server.send(key_to_send)
+        except Exception as e:
+            sys.exit('could not send server key encrypted')
+
         if self.port == self.main_server_port and self.client_type:
             self._send_client_type()
 
@@ -143,20 +153,15 @@ class ClientComm:
         self.send(general_client_protocol.pack_client_type(self.client_type))
 
 
-    def send(self, data, receiver_key=None):
+    def send(self, data):
         """
         sending data to server
         :param data: data to send
-        :param receiver_key: if using asymmetric encryption using receiver key
-        :return:
+        :return: None
         """
         print(f'sending: {data}')
-        if receiver_key:
-            data = AsymmetricEncryption.encrypt_msg(data, receiver_key)
-        elif self.symmetric:
+        if self.symmetric:
             data = self.symmetric.encrypt(data)
-        else:
-            sys.exit("couldn't set up key exchange")
 
         try:
             self.server.send(str(len(data)).zfill(self.send_len).encode())
