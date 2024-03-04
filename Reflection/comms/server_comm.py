@@ -27,6 +27,7 @@ class ServerComm:
         self.is_running = False
         self.receiving_files = []
         self.my_ip = Settings.get_ip()
+        self.mutex = threading.Lock()
         threading.Thread(target=self._main_loop).start()
 
     def _main_loop(self):
@@ -134,6 +135,7 @@ class ServerComm:
         :param from_logic: is called from logic
         :return: None
         """
+        self.mutex.acquire()
         if type(ip).__name__ == 'str' or type(ip).__name__ == 'tuple':
             client = self._find_socket_by_ip(ip)
         else:
@@ -145,6 +147,7 @@ class ServerComm:
             self.rcv_q.put((ip, 'close'))
         self._disconnect_client(client)
 
+        self.mutex.release()
     def _disconnect_client(self, client):
         """
         gets ip, deletes ip from all dictionaries and closes it's socket
@@ -179,13 +182,15 @@ class ServerComm:
             self.disconnect_client(client)
         else:
 
-            self.open_clients[client] = [ip, symmetrical_encryption.SymmetricalEncryption(data[2:])]
+            encryption = symmetrical_encryption.SymmetricalEncryption(data[2:])
 
-            # main server
             if self.port == self.main_server_port:
-                self._get_client_type(client, ip)
+                self._get_client_type(client, ip, encryption)
 
-    def _get_client_type(self, client, ip):
+            else:
+                self.open_clients[client] = [ip, encryption]
+
+    def _get_client_type(self, client, ip, encryption):
         """
         receives client type from client
         :param client: socket of client
@@ -200,13 +205,13 @@ class ServerComm:
             print("error in key_exchange: " + str(e))
             self.disconnect_client(client)
         else:
-            encryption = self.open_clients[client][1]
             data = encryption.decrypt(data)
             typ = data[-1]
             if typ != 'G' and typ != 'U':
                 self.disconnect_client(client)
             else:
-                self.open_clients[client][0] = (ip, typ)
+                self.open_clients[client] = [(ip, typ)]
+                self.open_clients[client].append(encryption)
                 print('finished transferring client type')
 
 

@@ -12,6 +12,7 @@ import wx
 from pubsub import pub
 import time
 from Reflection.graphics.graphics import MyFrame
+import win32file
 
 
 class MainUserClient:
@@ -27,14 +28,70 @@ class MainUserClient:
 
         self.graphic_q = Queue()
 
-
         threading.Thread(target=self.rcv_comm, args=(self.server_rcv_q,), daemon=True).start()
         threading.Thread(target=self.rcv_graphic, args=(self.graphic_q,), daemon=True).start()
-
+        self.monitor_thread = threading.Thread(target=self.monitor_files, daemon=True)
         app = wx.App(False)
         self.frame = MyFrame(self.graphic_q)
         self.frame.Show()
         app.MainLoop()
+
+
+    def monitor_files(self):
+        """
+
+        :return:
+        """
+        FILE_LIST_DIRECTORY = 0x0001
+        FILE_NOTIFY_CHANGE_FILE_NAME = 0x0001
+        FILE_NOTIFY_CHANGE_DIR_NAME = 0x0002
+        FILE_NOTIFY_CHANGE_LAST_WRITE = 0x0010
+        FILE_FLAG_BACKUP_SEMANTICS = 0x02000000
+        OPEN_EXISTING = 3
+
+        path_to_watch = Settings.local_changes_path + self.user_name
+
+        file_actions = {
+            0x00000001:
+                "Added",
+            0x00000002:
+                "Removed",
+            0x00000003:
+                "Modified",
+            0x00000004:
+                "Renamed old name",
+            0x00000005:
+                "Renamed new name"
+        }
+
+        directory_handle = win32file.CreateFileW(
+            path_to_watch,
+            FILE_LIST_DIRECTORY,  # No access (required for directories)
+            win32file.FILE_SHARE_READ | win32file.FILE_SHARE_WRITE | win32file.FILE_SHARE_DELETE,
+            None,
+            OPEN_EXISTING,
+            FILE_FLAG_BACKUP_SEMANTICS,
+            None
+        )
+        if directory_handle == -1:
+            print("Error opening directory")
+        else:
+            while True:
+                try:
+                    result = win32file.ReadDirectoryChangesW(
+                        directory_handle,
+                        4096,
+                        True,  # Watch subtree
+                        FILE_NOTIFY_CHANGE_LAST_WRITE | FILE_NOTIFY_CHANGE_FILE_NAME,
+                        None
+                    )
+
+                    for action in result:
+                        if file_actions[action[0]] == "Modified" and not action[1].startswith('~'):
+                            print('yesssssssssssssssssssssssssssssssssssssssssssss')
+                except Exception as e:
+                    break
+
 
     def rcv_graphic(self, q: Queue):
         """
@@ -197,6 +254,7 @@ class MainUserClient:
         while True:
             # gets new folder adds it to folders dict
             folders_got = self.handle_tree.get()
+            print('folders_got:', folders_got)
             new_folders[user_path] = [',']
             self.folders.update(folders_got)
 
@@ -208,7 +266,9 @@ class MainUserClient:
             self.folders[user_path].insert(0, ip)
             new_folders.update(folders_got)
             new_folders[user_path].insert(0, ip)
+            print('new_folders:', new_folders)
             wx.CallAfter(pub.sendMessage, "update_tree", dic=new_folders)
+
 
     def handle_status_open(self, vars: list):
         """
@@ -218,9 +278,14 @@ class MainUserClient:
         """
         status = vars[0]
         if status:
+
             path = vars[1]
             if os.path.isfile(path):
                 FileHandler.open_file(path)
+
+                # starting monitoring
+                if not self.monitor_thread.is_alive():
+                    self.monitor_thread.start()
             else:
                 print('error in opening file')
         else:

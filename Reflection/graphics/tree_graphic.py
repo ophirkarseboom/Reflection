@@ -6,15 +6,13 @@ from pubsub import pub
 from Reflection import settings
 from queue import Queue
 from Reflection.graphics import notification
+import threading
 
 class CreateFileDialog(wx.Dialog):
     def __init__(self, parent, title: str, is_folder):
 
         super(CreateFileDialog, self).__init__(parent, title=title, size=(300, 150))
-
-        print()
         self.is_folder = is_folder
-        print('is_folder:', self.is_folder)
 
         self.file_name = ''
         self.panel = wx.Panel(self)
@@ -75,6 +73,7 @@ class TreePanel(wx.Frame):
         self.tree.AssignImageList(self.image_list)
         self.path_item = {}
         self.forbidden = ('*', ',', '\\', '/', '[', ']', '{', '}', '?', '<', '>', ' ', ':', '|')
+        self.mutex = threading.Lock()
 
         self.tree.Bind(wx.EVT_TREE_ITEM_ACTIVATED, self.on_double_clicked)
         self.tree.Bind(wx.EVT_TREE_ITEM_EXPANDED, self.on_expanded)
@@ -203,7 +202,6 @@ class TreePanel(wx.Frame):
         id_selected = evt.GetId()
         obj = evt.GetEventObject()
         text = obj.GetLabel(id_selected)
-        print('text:', text)
         path = self.tree.GetItemData(item)
         if text.startswith('create') or text == 'rename':
             self.create_file_dialog(text, path)
@@ -225,7 +223,6 @@ class TreePanel(wx.Frame):
             father_path = self.tree.GetItemData(father)
 
         folder = True
-        print('father path:', father_path)
         if father_path not in dic:
             return
 
@@ -243,7 +240,6 @@ class TreePanel(wx.Frame):
             if folder:
                 self.folders.append(path)
                 self.convert_to_tree(dic, new_item)
-
 
     def add_pic(self, item, name: str, is_folder: bool):
         """
@@ -268,9 +264,7 @@ class TreePanel(wx.Frame):
         :param evt: event happened
         :return: None
         """
-        print("hello")
-        print('Double clicked on', self.tree.GetItemData(evt.GetItem()))
-        print(self.path_item)
+
         item = evt.GetItem()
         if self.tree.IsExpanded(item):
             self.tree.Collapse(item)
