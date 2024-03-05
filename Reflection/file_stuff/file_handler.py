@@ -2,9 +2,23 @@ import ctypes
 import os
 from Reflection.settings import Settings
 import shutil
+import psutil
+from subprocess import Popen
 
 class FileHandler:
     root = Settings.root
+    image_types = ["apng", "avif", "gif", "jpg", "jpeg", "jfif", "pjpeg", "pjp", "png", "svg", "webp", "bmp", "ico",
+                   "cur",
+                   "tif", "tiff"]
+
+    default_for_type = {'docx': 'WINWORD.EXE',
+                        'pptx': 'POWERPNT.EXE',
+                        'ppt': 'POWERPNT.EXE',
+                        'zip': 'explorer.exe',
+                        **{img: 'Microsoft.Photos.exe' for img in image_types},
+                        'xlsx': 'EXCEL.EXE'}
+
+
 
     def __init__(self, username: str):
         self.my_ip = Settings.get_ip()
@@ -26,6 +40,45 @@ class FileHandler:
         :return: if path is local or not
         """
         return path.startswith(self.user_path + self.my_ip) and os.path.exists(FileHandler.remove_ip(self.username, path))
+
+    @staticmethod
+    def get_all_pid(process_name):
+        """
+        gets all processes running with process_name got
+        :param process_name: the type of process
+        :return: all processes running with the same process name
+        """
+        current = []
+        for proc in psutil.process_iter():
+            if proc.name() == process_name:
+                current.append(proc.pid)
+
+        return current
+
+    @staticmethod
+    def get_process_name(file_path: str):
+        """
+        gets process name by file path
+        :param file_path: path of file
+        :return: process name of file
+        """
+        file_extension = file_path[file_path.rfind('.') + 1:]
+        if file_extension in FileHandler.default_for_type:
+            process_name = FileHandler.default_for_type[file_extension]
+        else:
+            process_name = 'Notepad.exe'
+
+        return process_name
+    @staticmethod
+    def wait_for_process_to_close(pid):
+        """
+        waiting for process to close
+        :param pid: the process id
+        :return: None
+        """
+        while psutil.pid_exists(pid):
+            pass
+
 
     @staticmethod
     def rename(path: str, new_name: str):
@@ -93,7 +146,7 @@ class FileHandler:
         gets path and opens file
         :param path: path of file
         """
-        os.system('start "" "' + path + '"')
+        Popen(['start', path], shell=True)
 
 
     @staticmethod

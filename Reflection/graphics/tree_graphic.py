@@ -6,7 +6,9 @@ from pubsub import pub
 from Reflection import settings
 from queue import Queue
 from Reflection.graphics import notification
-import threading
+from Reflection.file_stuff.file_handler import FileHandler
+
+
 
 class CreateFileDialog(wx.Dialog):
     def __init__(self, parent, title: str, is_folder):
@@ -73,7 +75,6 @@ class TreePanel(wx.Frame):
         self.tree.AssignImageList(self.image_list)
         self.path_item = {}
         self.forbidden = ('*', ',', '\\', '/', '[', ']', '{', '}', '?', '<', '>', ' ', ':', '|')
-        self.mutex = threading.Lock()
 
         self.tree.Bind(wx.EVT_TREE_ITEM_ACTIVATED, self.on_double_clicked)
         self.tree.Bind(wx.EVT_TREE_ITEM_EXPANDED, self.on_expanded)
