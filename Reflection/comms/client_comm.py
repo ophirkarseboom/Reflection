@@ -11,7 +11,7 @@ from Reflection.encryption import asymmetric_encryption
 from Reflection.encryption import symmetrical_encryption
 from Reflection.protocols import general_client_protocol
 from Reflection.protocols import user_client_protocol
-from Reflection.file_stuff.file_handler import FileHandler
+from Reflection.local_handler.file_handler import FileHandler
 from Reflection.settings import Settings
 from Reflection.encryption.asymmetric_encryption import AsymmetricEncryption
 

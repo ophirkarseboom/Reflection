@@ -6,7 +6,7 @@ from pubsub import pub
 from Reflection import settings
 from queue import Queue
 from Reflection.graphics import notification
-from Reflection.file_stuff.file_handler import FileHandler
+from Reflection.local_handler.file_handler import FileHandler
 
 
 
@@ -216,7 +216,6 @@ class TreePanel(wx.Frame):
         :param father: a parent
         :return: None
         """
-        print('dict:', dic)
         if not father:
             father_path = next(iter(dic.keys()))
             father = self.root

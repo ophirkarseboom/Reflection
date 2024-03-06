@@ -111,7 +111,7 @@ class ServerComm:
                         file_is_ok = False
 
             if file_is_ok:
-
+                print('ok this got interesting all of a sudden')
                 file = bytes(file)
                 print(file)
                 file = self.open_clients[client][1].decrypt(file, True)

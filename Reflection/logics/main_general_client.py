@@ -7,7 +7,7 @@ from Reflection.comms.client_comm import ClientComm
 from Reflection.protocols import general_client_protocol as client_protocol
 from Reflection.protocols import server_protocol
 import os
-from Reflection.file_stuff.file_handler import FileHandler
+from Reflection.local_handler.file_handler import FileHandler
 from Reflection.comms.server_comm import ServerComm
 
 

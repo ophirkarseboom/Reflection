@@ -5,7 +5,7 @@ from Reflection.database import db
 from Reflection.protocols import server_protocol as protocol
 from Reflection.encryption import symmetrical_encryption
 import os
-from Reflection.file_stuff.file_handler import FileHandler
+from Reflection.local_handler.file_handler import FileHandler
 
 
 

@@ -6,7 +6,8 @@ from Reflection.protocols import user_client_protocol as protocol
 from uuid import getnode
 from collections import deque
 import os
-from Reflection.file_stuff.file_handler import FileHandler
+from Reflection.local_handler.file_handler import FileHandler
+from Reflection.local_handler import process_handler
 from Reflection.settings import Settings
 import wx
 from pubsub import pub
@@ -15,6 +16,7 @@ from Reflection.graphics.graphics import MyFrame
 import win32file
 import win32con
 import win32event
+
 
 
 class MainUserClient:
@@ -26,8 +28,7 @@ class MainUserClient:
         self.client = ClientComm(Settings.server_ip, Settings.server_port, self.server_rcv_q, 6, 'U')
         self.user_name = ''
         self.handle_tree = Queue()
-        self.ip_comm = {str: ClientComm}
-
+        self.ip_comm = {}
         self.graphic_q = Queue()
 
         threading.Thread(target=self.rcv_comm, args=(self.server_rcv_q,), daemon=True).start()
@@ -38,39 +39,63 @@ class MainUserClient:
         app.MainLoop()
 
 
-    def monitor_file(self, path_to_watch):
+    def monitor_file(self, file_path: str):
         """
-
-        :return:
+        monitors a file and sends server what changed in file
+        :param file_path: path for file to monitor
+        :return: None
         """
-
+        modified = 0x00000003
         FILE_LIST_DIRECTORY = 0x0001
-        hDir = win32file.CreateFile(
+        FILE_NOTIFY_CHANGE_FILE_NAME = 0x0001
+        FILE_NOTIFY_CHANGE_LAST_WRITE = 0x0010
+        FILE_FLAG_BACKUP_SEMANTICS = 0x02000000
+        OPEN_EXISTING = 3
+
+        path_to_watch, file_name = FileHandler.split_path_last_part(file_path)
+        directory_handle = win32file.CreateFileW(
             path_to_watch,
-            FILE_LIST_DIRECTORY,
-            win32con.FILE_SHARE_READ | win32con.FILE_SHARE_WRITE | win32con.FILE_SHARE_DELETE,
+            FILE_LIST_DIRECTORY,  # No access (required for directories)
+            win32file.FILE_SHARE_READ | win32file.FILE_SHARE_WRITE | win32file.FILE_SHARE_DELETE,
             None,
-            win32con.OPEN_EXISTING,
-            win32con.FILE_FLAG_BACKUP_SEMANTICS,
+            OPEN_EXISTING,
+            FILE_FLAG_BACKUP_SEMANTICS,
             None
         )
+        if directory_handle == -1:
+            print("Error opening directory")
+        else:
+            changed = False
+            while True:
+                try:
+                    result = win32file.ReadDirectoryChangesW(
+                        directory_handle,
+                        4096,
+                        True,  # Watch subtree
+                        FILE_NOTIFY_CHANGE_LAST_WRITE | FILE_NOTIFY_CHANGE_FILE_NAME,
+                        None
+                    )
 
-        while True:
-            results = win32file.ReadDirectoryChangesW(
-                hDir,
-                1024,
-                True,
-                win32con.FILE_NOTIFY_CHANGE_FILE_NAME |
-                win32con.FILE_NOTIFY_CHANGE_ATTRIBUTES |
-                win32con.FILE_NOTIFY_CHANGE_SIZE |
-                win32con.FILE_NOTIFY_CHANGE_LAST_WRITE |
-                win32con.FILE_NOTIFY_CHANGE_SECURITY,
-                None,
-                None
-            )
-            previews_name = ''
-            for action, file_name in results:
-                print('file_name:', file_name)
+                    for action, name_monitored in result:
+                        if action == modified and not name_monitored.startswith('~') and name_monitored == file_name:
+                            if changed:
+                                changed = False
+                                with open(file_path, 'rb') as f:
+                                    file_data = f.read()
+
+                                ip_to_send = FileHandler.extract_ip(self.user_name, file_path)
+                                if ip_to_send in self.ip_comm:
+                                    comm = self.ip_comm[ip_to_send]
+                                    comm.send(protocol.pack_change_file(file_path))
+                                    comm.send(file_data)
+
+                            else:
+                                changed = True
+
+
+                except Exception as e:
+                    break
+
 
     def visualize_open_file(self, file_path):
         """
@@ -78,22 +103,25 @@ class MainUserClient:
         :param file_path: path of file
         :return: None
         """
-        process_name = FileHandler.get_process_name(file_path)
-        ls1 = FileHandler.get_all_pid(process_name)
+        # start monitoring file
+        threading.Thread(target=self.monitor_file, args=(file_path,), daemon=True).start()
+
+        process_name = process_handler.get_process_name(file_path)
+        ls1 = process_handler.get_all_pid(process_name)
         dir_path, _ = FileHandler.split_path_last_part(file_path)
-        threading.Thread(target=self.monitor_file, args=(r'D:\reflection\localChange',), daemon=True).start()
         FileHandler.open_file(file_path)
 
         # wait for file to be added to pid list
         while True:
-            ls2 = FileHandler.get_all_pid(process_name)
+            ls2 = process_handler.get_all_pid(process_name)
             if ls2 != ls1:
+
                 break
 
         new_pid = set(ls2) - set(ls1)
         pid = list(new_pid)[0]
 
-        FileHandler.wait_for_process_to_close(pid)
+        process_handler.wait_for_process_to_close(pid)
 
 
 
@@ -106,15 +134,11 @@ class MainUserClient:
         while True:
             print(self.folders)
             command, param_got = q.get()
-            print('command:', command)
             if command == 'create file':
                 path, name = self.file_handler.split_path_last_part(param_got)
-                print('path:', path)
                 name = name.split('.')
                 typ = name[-1]
                 name = ''.join(name[:-1])
-                print('name:', name)
-                print('typ:', typ)
                 self.create(path, name, typ)
             elif command == 'create folder':
                 path, name = self.file_handler.split_path_last_part(param_got)
@@ -426,8 +450,10 @@ class MainUserClient:
             user_path = self.file_handler.user_path[:-1]
             self.folders = {user_path: [',']}
             self.file_handler.create_root()
-            threading.Thread(target=self.get_file_tree, daemon=True).start()
+            print('user_path:', user_path)
 
+            # thread that waits for getting file trees
+            threading.Thread(target=self.get_file_tree, daemon=True).start()
             # grpahic
             wx.CallAfter(pub.sendMessage, 'login')
 
