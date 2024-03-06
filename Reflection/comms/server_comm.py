@@ -80,7 +80,6 @@ class ServerComm:
         :param header: header of file
         :return: None
         """
-
         try:
             data_len = int(client.recv(self.send_len).decode())
         except Exception as e:
@@ -115,13 +114,12 @@ class ServerComm:
                 file = bytes(file)
                 print(file)
                 file = self.open_clients[client][1].decrypt(file, True)
-                path = header
+                path = header[2:]
                 print('path:', path)
                 ip = '\\' + self.my_ip
                 if ip in path:
 
                     path = path.replace(ip, '')
-
                     # creating file
                     with open(path, 'wb') as save:
                         save.write(file)
