@@ -7,7 +7,8 @@ class Settings:
     server_port = 2000
     root = 'C:\\reflection\\'
     pear_port = 2500
-    local_changes_path = f'{root}localChange\\'
+    local_path_directory = 'localChange\\'
+    local_changes_path = f'{root}{local_path_directory}'
     pic_path = 'C:\\Users\\ophir\\PycharmProjects\\Reflection\\Reflection\\graphics\\'
 
     @staticmethod

@@ -32,8 +32,7 @@ class FileHandler:
         return path.startswith(self.user_path + self.my_ip) and os.path.exists(FileHandler.remove_ip(self.username, path))
 
 
-
-    @staticmethod
+    @ staticmethod
     def rename(path: str, new_name: str):
         """
         gets path and renames it
@@ -136,6 +135,7 @@ class FileHandler:
     def remove_ip(username, path: str):
         """
         gets path and removes ip out of it
+        :param username: username of user
         :param path: path
         :return: path without ip
         """

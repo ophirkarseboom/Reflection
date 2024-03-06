@@ -86,7 +86,8 @@ class MainUserClient:
                                 ip_to_send = FileHandler.extract_ip(self.user_name, file_path)
                                 if ip_to_send in self.ip_comm:
                                     comm = self.ip_comm[ip_to_send]
-                                    comm.send(protocol.pack_change_file(file_path))
+                                    path_to_send = file_path.replace(Settings.local_path_directory, '', 1)
+                                    comm.send(protocol.pack_change_file(path_to_send))
                                     comm.send(file_data)
 
                             else:

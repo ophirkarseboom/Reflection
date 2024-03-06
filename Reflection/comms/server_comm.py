@@ -117,7 +117,6 @@ class ServerComm:
                 file = self.open_clients[client][1].decrypt(file, True)
                 path = header
                 print('path:', path)
-                return
                 ip = '\\' + self.my_ip
                 if ip in path:
 
@@ -126,6 +125,8 @@ class ServerComm:
                     # creating file
                     with open(path, 'wb') as save:
                         save.write(file)
+
+                    # self.rcv_q.put()
 
         if client in self.receiving_files:
             self.receiving_files.remove(client)
