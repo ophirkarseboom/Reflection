@@ -139,6 +139,7 @@ def handle_asked_file_tree(client: ClientComm, vars: list):
     folder_path = f'{FileHandler.root}{folder}'
     print(folder_path)
     time.sleep(1)
+    print('folder_path:', folder_path)
     if os.path.isdir(folder_path):
 
         client.send(client_protocol.pack_file_tree(folder_path))

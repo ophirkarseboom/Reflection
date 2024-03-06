@@ -115,7 +115,9 @@ class ServerComm:
                 file = bytes(file)
                 print(file)
                 file = self.open_clients[client][1].decrypt(file, True)
-                path = header.split(',')[1]
+                path = header
+                print('path:', path)
+                return
                 ip = '\\' + self.my_ip
                 if ip in path:
 
