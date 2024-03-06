@@ -67,7 +67,7 @@ class TreePanel(wx.Frame):
         self.cwd = settings.Settings.pic_path
         self.tree = wx.TreeCtrl(self, style=wx.TR_HIDE_ROOT)
         self.file_commands = ('open', 'delete', 'rename')
-        self.folder_commands = ('create file', 'create folder', 'delete', 'rename')
+        self.folder_commands = ('create file', 'create folder', 'delete', 'rename', 'upload file')
         self.root = self.tree.AddRoot("root")
         self.command_q = command_q
         self.folders = []
@@ -130,7 +130,7 @@ class TreePanel(wx.Frame):
             # temp
             is_folder = False
         while True:
-            dialog = CreateFileDialog(self, dialog_title.upper(), is_folder)
+            dialog = CreateFileDialog(self, dialog_title.capitalize(), is_folder)
             if dialog.ShowModal() == wx.ID_OK:
                 file_name = dialog.file_name
                 full_path = f'{path}\\{file_name}'
@@ -154,6 +154,12 @@ class TreePanel(wx.Frame):
             self.tree.Delete(self.path_item[path])
 
     def add_object(self, path: str, name: str, typ: str):
+        """
+        adds object to tree
+        :param path: path of file (directory above it)
+        :param name: name of file
+        :param typ: type of file\folder
+        """
         if path not in self.path_item:
             return
 
@@ -206,6 +212,16 @@ class TreePanel(wx.Frame):
         path = self.tree.GetItemData(item)
         if text.startswith('create') or text == 'rename':
             self.create_file_dialog(text, path)
+        elif text == 'upload file' or text == 'download file':
+            file_dialog = wx.FileDialog(None, "Choose a file", style=wx.FD_OPEN)
+            # Show the dialog and wait for the user's response
+            if file_dialog.ShowModal() == wx.ID_OK:
+                # Get the path selected by the user
+                file_path = file_dialog.GetPath()
+                print("Selected file:", file_path)
+
+            # Destroy the dialog
+            file_dialog.Destroy()
         else:
             self.command_q.put((text, path))
 

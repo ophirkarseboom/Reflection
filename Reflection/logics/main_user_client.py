@@ -4,18 +4,14 @@ import threading
 from Reflection.comms.client_comm import ClientComm
 from Reflection.protocols import user_client_protocol as protocol
 from uuid import getnode
-from collections import deque
 import os
 from Reflection.local_handler.file_handler import FileHandler
 from Reflection.local_handler import process_handler
 from Reflection.settings import Settings
 import wx
 from pubsub import pub
-import time
 from Reflection.graphics.graphics import MyFrame
 import win32file
-import win32con
-import win32event
 
 
 
@@ -69,12 +65,12 @@ class MainUserClient:
             while True:
                 try:
                     result = win32file.ReadDirectoryChangesW(
-                        directory_handle,
-                        4096,
-                        True,  # Watch subtree
-                        FILE_NOTIFY_CHANGE_LAST_WRITE | FILE_NOTIFY_CHANGE_FILE_NAME,
-                        None
-                    )
+                    directory_handle,
+                    4096,
+                    True,  # Watch subtree
+                    FILE_NOTIFY_CHANGE_LAST_WRITE | FILE_NOTIFY_CHANGE_FILE_NAME,
+                    None
+                )
 
                     for action, name_monitored in result:
                         if action == modified and not name_monitored.startswith('~') and name_monitored == file_name:
@@ -94,7 +90,7 @@ class MainUserClient:
                                 changed = True
 
 
-                except Exception as e:
+                except Exception:
                     break
 
 
@@ -123,6 +119,8 @@ class MainUserClient:
         pid = list(new_pid)[0]
 
         process_handler.wait_for_process_to_close(pid)
+
+        FileHandler.delete(file_path)
 
 
 
