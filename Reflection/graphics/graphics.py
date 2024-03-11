@@ -5,7 +5,7 @@ import os
 from pubsub import pub
 from Reflection import settings
 from queue import Queue
-from Reflection.graphics.tree_graphic import TreePanel
+from Reflection.graphics.tree_graphic import TreeFrame
 from Reflection.graphics import notification
 
 
@@ -244,7 +244,7 @@ class LoginPanel(wx.Panel):
         print('got to go_to_tree')
 
         self.parent.Hide()
-        TreePanel(self, self.parent.logic_q)
+        TreeFrame(self, self.parent.logic_q)
 
 if __name__ == '__main__':
     graphic_q = Queue()

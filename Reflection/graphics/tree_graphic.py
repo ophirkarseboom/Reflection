@@ -7,7 +7,7 @@ from Reflection import settings
 from queue import Queue
 from Reflection.graphics import notification
 from Reflection.local_handler.file_handler import FileHandler
-
+import sys
 
 
 class CreateFileDialog(wx.Dialog):
@@ -56,17 +56,19 @@ class CreateFileDialog(wx.Dialog):
 
 
 
-class TreePanel(wx.Frame):
+class TreeFrame(wx.Frame):
     open_folder_name = 'open_folder.png'
-    close_folder_name = 'close_folder.png'
-    file_name = 'file.png'
-
+    close_folder_name = 'fld.png'
+    file_name = 'txt.png'
+    image_types = ["apng", "avif", "gif", "jpg", "jpeg", "jfif", "pjpeg", "pjp", "png", "svg", "webp", "bmp", "ico",
+                   "cur",
+                   "tif", "tiff"]
     def __init__(self, parent, command_q: Queue):
         # wx.Panel.__init__(self, parent, -1)
         wx.Frame.__init__(self, parent, pos=wx.DefaultPosition)
         self.cwd = settings.Settings.pic_path
         self.tree = wx.TreeCtrl(self, style=wx.TR_HIDE_ROOT)
-        self.file_commands = ('open', 'delete', 'rename')
+        self.file_commands = ('open', 'delete', 'rename', 'download')
         self.folder_commands = ('create file', 'create folder', 'delete', 'rename', 'upload file')
         self.root = self.tree.AddRoot("root")
         self.command_q = command_q
@@ -80,6 +82,8 @@ class TreePanel(wx.Frame):
         self.tree.Bind(wx.EVT_TREE_ITEM_EXPANDED, self.on_expanded)
         self.tree.Bind(wx.EVT_TREE_ITEM_COLLAPSED, self.on_collapsed)
         self.tree.Bind(wx.EVT_TREE_ITEM_RIGHT_CLICK, self.on_right_click)
+        self.tree.Bind(wx.EVT_TREE_BEGIN_DRAG, self.on_drag)
+        self.tree.Bind(wx.EVT_TREE_END_DRAG, self.stop_drag)
 
         pub.subscribe(self.convert_to_tree, "update_tree")
         pub.subscribe(self.add_object, "create")
@@ -87,6 +91,17 @@ class TreePanel(wx.Frame):
         pub.subscribe(notification.show_error, "error")
 
         self.Show()
+
+    def stop_drag(self, evt):
+        draged_on = evt.GetItem()
+        print('draged_on:', self.tree.GetItemData(draged_on))
+
+    def on_drag(self, evt):
+
+        evt.Allow()
+        self.drag_item = self.tree.GetItemData(evt.GetItem())
+
+        print(self.drag_item)
 
     def valid_input(self, file_name: str, is_folder: bool):
         """
@@ -212,16 +227,16 @@ class TreePanel(wx.Frame):
         path = self.tree.GetItemData(item)
         if text.startswith('create') or text == 'rename':
             self.create_file_dialog(text, path)
-        elif text == 'upload file' or text == 'download file':
+        elif text == 'upload file' or text == 'download':
             file_dialog = wx.FileDialog(None, "Choose a file", style=wx.FD_OPEN)
-            # Show the dialog and wait for the user's response
+            file_explorer_path_chose = None
             if file_dialog.ShowModal() == wx.ID_OK:
-                # Get the path selected by the user
-                file_path = file_dialog.GetPath()
-                print("Selected file:", file_path)
+                file_explorer_path_chose = file_dialog.GetPath()
+                print("Selected file:", file_explorer_path_chose)
 
-            # Destroy the dialog
             file_dialog.Destroy()
+            if file_explorer_path_chose:
+                self.command_q.put((text, f'{path},{file_explorer_path_chose}'))
         else:
             self.command_q.put((text, path))
 
@@ -232,7 +247,9 @@ class TreePanel(wx.Frame):
         :param father: a parent
         :return: None
         """
+
         if not father:
+            print('dictionary working with:', dic)
             father_path = next(iter(dic.keys()))
             father = self.root
         else:
@@ -252,7 +269,6 @@ class TreePanel(wx.Frame):
             new_item = self.tree.AppendItem(father, element, data=path)
             self.path_item[path] = new_item
             self.add_pic(new_item, element, folder)
-
             if folder:
                 self.folders.append(path)
                 self.convert_to_tree(dic, new_item)
@@ -264,12 +280,18 @@ class TreePanel(wx.Frame):
         :param name: name of item
         :return: None
         """
-        name = name.split('.')
+
         if is_folder:
             pic_name = self.close_folder_name
         else:
-            pic_name = self.file_name
 
+            name, typ = name.split('.')
+            pic_name = typ
+            if typ in TreeFrame.image_types:
+                pic_name = 'pic'
+            pic_name += '.png'
+            if pic_name not in os.listdir(settings.Settings.pic_path):
+                pic_name = 'txt.png'
         item_image = self.image_list.Add(
             wx.Image(self.cwd + pic_name, wx.BITMAP_TYPE_PNG).Scale(16, 16).ConvertToBitmap())
         self.tree.SetItemImage(item, item_image, wx.TreeItemIcon_Normal)
@@ -280,13 +302,17 @@ class TreePanel(wx.Frame):
         :param evt: event happened
         :return: None
         """
-
         item = evt.GetItem()
-        if self.tree.IsExpanded(item):
-            self.tree.Collapse(item)
-        else:
-            self.tree.Expand(item)
+        path = self.tree.GetItemData(item)
+        if path in self.folders:
+            if self.tree.IsExpanded(item):
+                self.tree.Collapse(item)
+            else:
+                self.tree.Expand(item)
 
+        # open file
+        else:
+            self.command_q.put(('open', path))
     def on_expanded(self, evt):
         """
         gets evt and does stuff for expanded item
@@ -299,6 +325,7 @@ class TreePanel(wx.Frame):
             wx.Image(self.cwd + self.open_folder_name, wx.BITMAP_TYPE_PNG).Scale(16, 16).ConvertToBitmap())
         self.tree.SetItemImage(item, item_image, wx.TreeItemIcon_Normal)
 
+        self.SetClientSize(self.GetBestSize())
     def on_collapsed(self, evt):
         """
        gets evt and does stuff for collapsed item
@@ -309,10 +336,11 @@ class TreePanel(wx.Frame):
         item_image = self.image_list.Add(
             wx.Image(self.cwd + self.close_folder_name, wx.BITMAP_TYPE_PNG).Scale(16, 16).ConvertToBitmap())
         self.tree.SetItemImage(item, item_image, wx.TreeItemIcon_Normal)
+        self.SetClientSize(self.GetBestSize())
 
 
 
 if __name__ == '__main__':
     app = wx.App(False)
-    first = TreePanel(None, Queue())
+    first = TreeFrame(None, Queue())
     app.MainLoop()

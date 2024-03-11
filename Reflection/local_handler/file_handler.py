@@ -33,6 +33,16 @@ class FileHandler:
 
 
     @ staticmethod
+    def copy_file(where: str, to: str):
+        """
+        moves a file
+        :param where: original path
+        :param to: new path
+        :return: None
+        """
+        shutil.copy(where, to)
+
+    @ staticmethod
     def rename(path: str, new_name: str):
         """
         gets path and renames it
@@ -111,7 +121,7 @@ class FileHandler:
         :return: path with ip in it
         """
         ip_to_insert = '\\' + ip
-        return path.replace(username, username + ip_to_insert)
+        return path.replace(username, username + ip_to_insert, 1)
 
 
     @staticmethod
@@ -149,7 +159,7 @@ class FileHandler:
 
                 if ip in path:
                     print('hi')
-                    path = path.replace(ip, '')
+                    path = path.replace(ip, '', 1)
 
         return path
 

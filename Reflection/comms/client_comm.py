@@ -14,6 +14,7 @@ from Reflection.protocols import user_client_protocol
 from Reflection.local_handler.file_handler import FileHandler
 from Reflection.settings import Settings
 from Reflection.encryption.asymmetric_encryption import AsymmetricEncryption
+import Reflection.protocols.user_client_protocol as user_client_protocl
 
 
 class ClientComm:
@@ -164,11 +165,29 @@ class ClientComm:
             data = self.symmetric.encrypt(data)
 
         try:
-            self.server.send(str(len(data)).zfill(self.send_len).encode())
-            self.server.send(data)
+            self.server.send(str(len(data)).zfill(self.send_len).encode()+data)
         except Exception as e:
             print('client comm - send', str(e))
             sys.exit("server is down, try again later")
+
+    def send_file(self, path, data):
+        """
+        sends file to server
+        :param path: path of the file
+        :param data: the data of the file (binary)
+        :return: None
+        """
+        header = user_client_protocl.pack_change_file(path)
+        header = self.symmetric.encrypt(header)
+        data = self.symmetric.encrypt(data)
+        header_len = str(len(header)).zfill(self.send_len).encode()
+        data_len = str(len(data)).zfill(self.send_len).encode()
+        try:
+            self.server.send(header_len + header + data_len + data)
+        except Exception as e:
+            print('client comm - send', str(e))
+            sys.exit("server is down, try again later")
+
 
 
 if __name__ == '__main__':

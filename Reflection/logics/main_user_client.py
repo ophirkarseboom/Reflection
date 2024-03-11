@@ -1,6 +1,6 @@
 from queue import Queue
 import threading
-
+import Reflection.protocols.general_client_protocol as general_client_protocol
 from Reflection.comms.client_comm import ClientComm
 from Reflection.protocols import user_client_protocol as protocol
 from uuid import getnode
@@ -14,7 +14,6 @@ from Reflection.graphics.graphics import MyFrame
 import win32file
 
 
-
 class MainUserClient:
 
     def __init__(self):
@@ -26,6 +25,7 @@ class MainUserClient:
         self.handle_tree = Queue()
         self.ip_comm = {}
         self.graphic_q = Queue()
+        self.downloads = {} #{local path, path on gui}
 
         threading.Thread(target=self.rcv_comm, args=(self.server_rcv_q,), daemon=True).start()
         threading.Thread(target=self.rcv_graphic, args=(self.graphic_q,), daemon=True).start()
@@ -61,7 +61,7 @@ class MainUserClient:
         if directory_handle == -1:
             print("Error opening directory")
         else:
-            changed = False
+            # changed = False
             while True:
                 try:
                     result = win32file.ReadDirectoryChangesW(
@@ -73,26 +73,51 @@ class MainUserClient:
                 )
 
                     for action, name_monitored in result:
-                        if action == modified and not name_monitored.startswith('~') and name_monitored == file_name:
-                            if changed:
-                                changed = False
-                                with open(file_path, 'rb') as f:
-                                    file_data = f.read()
 
-                                ip_to_send = FileHandler.extract_ip(self.user_name, file_path)
-                                if ip_to_send in self.ip_comm:
-                                    comm = self.ip_comm[ip_to_send]
-                                    path_to_send = file_path.replace(Settings.local_path_directory, '', 1)
-                                    comm.send(protocol.pack_change_file(path_to_send))
-                                    comm.send(file_data)
-
-                            else:
-                                changed = True
-
+                        if action == modified and name_monitored == file_name:
+                            print('saved file in monitor')
+                            to_send_path = file_path.replace(Settings.local_path_directory, '', 1)
+                            self.save_file(file_path, to_send_path)
 
                 except Exception:
                     break
 
+
+    def save_file(self, from_path, to_path):
+        """
+        sends file data to ip inside path, if local saves path local
+        :param from_path: location of data to send
+        :param to_path: the path for client to save data in
+        :return: None
+        """
+        if not os.path.isfile(from_path):
+            self.call_error('could not save file data')
+            return
+
+        # get file data
+        with open(from_path, 'rb') as f:
+            file_data = f.read()
+
+        if self.file_handler.is_local(to_path):
+            to_path = self.file_handler.remove_ip(self.user_name, to_path)
+            with open(to_path, 'wb') as f:
+                f.write(file_data)
+
+        # need to send to other computer
+        else:
+            ip_to_send = FileHandler.extract_ip(self.user_name, to_path)
+            if ip_to_send in self.ip_comm:
+                comm = self.ip_comm[ip_to_send]
+            else:
+                rcv_q = Queue()
+                comm = ClientComm(ip_to_send, Settings.pear_port, rcv_q, 8)
+                self.ip_comm[ip_to_send] = comm
+                threading.Thread(target=self.rcv_comm, args=(rcv_q,), daemon=True).start()
+
+            # comm.send(protocol.pack_change_file(to_path))
+            # print('protocol send:', protocol.pack_change_file(to_path))
+            # comm.send(file_data)
+            comm.send_file(to_path, file_data)
 
     def visualize_open_file(self, file_path):
         """
@@ -121,7 +146,7 @@ class MainUserClient:
         process_handler.wait_for_process_to_close(pid)
 
         FileHandler.delete(file_path)
-
+        print('ended visualize file')
 
 
     def rcv_graphic(self, q: Queue):
@@ -133,6 +158,7 @@ class MainUserClient:
         while True:
             print(self.folders)
             command, param_got = q.get()
+            print('command:', command, '       param:', param_got)
             if command == 'create file':
                 path, name = self.file_handler.split_path_last_part(param_got)
                 name = name.split('.')
@@ -144,7 +170,7 @@ class MainUserClient:
                 self.create(path, name, 'fld')
 
             elif command == 'open':
-                self.open(param_got)
+                self.get_file_data(param_got)
 
             elif command == 'delete':
                 self.delete(param_got)
@@ -164,12 +190,40 @@ class MainUserClient:
                 self.do_connect(password)
 
             elif command == 'register':
-                if param_got.count(',') != 1 or '\\' in param_got:
+                if param_got.count(',') != 1:
                     self.call_error('problem with password or username')
                     continue
                 self.user_name, password = param_got.split(',')
                 print('self.username:', self.user_name)
                 self.do_register(password)
+
+            elif command == 'upload file':
+                if param_got.count(',') != 1:
+                    self.call_error('problem with uploading file')
+                    continue
+                dir_path, from_path = param_got.split(',')
+                name = os.path.basename(from_path)
+                to_path = f'{dir_path}\\{name}'
+                name, typ = name.split('.')
+
+                self.handle_status_create(['ok', f'{dir_path}\\{name}', typ])
+                self.save_file(from_path, to_path)
+
+            elif command == 'download':
+                if param_got.count(',') != 1:
+                    self.call_error('problem with uploading file')
+                    continue
+                downloaded, download_to = param_got.split(',')
+
+                print('download:', downloaded)
+                dir_path, name = FileHandler.split_path_last_part(download_to)
+                typ = os.path.basename(downloaded).split('.')[-1]
+                FileHandler.create(f'{dir_path}\\{name}', str(typ))
+                if '.' not in os.path.basename(download_to):
+                    download_to += f'.{typ}'
+                self.downloads[download_to] = downloaded
+                print('local path:', download_to)
+                self.get_file_data(downloaded)
 
             else:
                 print('hi')
@@ -282,7 +336,6 @@ class MainUserClient:
             new_folders = {}
             # gets new folder adds it to folders dict
             folders_got = self.handle_tree.get()
-            print('folders_got:', folders_got)
             new_folders[user_path] = [',']
             self.folders.update(folders_got)
 
@@ -294,7 +347,6 @@ class MainUserClient:
             self.folders[user_path].insert(0, ip)
             new_folders.update(folders_got)
             new_folders[user_path].insert(0, ip)
-            print('new_folders:', new_folders)
             wx.CallAfter(pub.sendMessage, "update_tree", dic=new_folders)
 
 
@@ -309,25 +361,46 @@ class MainUserClient:
 
             path = vars[1]
             print('path:', path)
-            if os.path.isfile(path):
+            download_path = path.replace(Settings.local_path_directory, '', 1)
+            print('downloaded_path:', download_path)
+            print('downloads:', self.downloads)
+
+            if download_path in self.downloads.values():
+                local_path = next(filter(lambda item: item[1] == download_path, self.downloads.items()), None)[0]
+                print('hi nice')
+                FileHandler.copy_file(path, local_path)
+                del self.downloads[local_path]
+
+            elif os.path.isfile(path):
+
                 threading.Thread(target=self.visualize_open_file, args=(path,), daemon=True).start()
             else:
                 print('error in opening file')
         else:
             self.call_error("couldn't open file")
 
-    def open(self, path: str):
+    def get_file_data(self, path: str):
         """
         gets path of file with its name and opens it
         :param path: path of file
         return:
         """
 
+        # file is local so opens it immediately
         if self.file_handler.is_local(path):
             local = self.file_handler.remove_ip(self.user_name, path)
             FileHandler.open_file(local)
-        else:
 
+        # if user asked to download local file
+        elif path in self.downloads and os.path.isfile(FileHandler.remove_ip(self.user_name, self.downloads[path])):
+            download_from_path = FileHandler.remove_ip(self.user_name, self.downloads[path])
+            print('download from:', download_from_path)
+            print('download to:', path)
+            FileHandler.copy_file(download_from_path, path)
+            del self.downloads[path]
+
+        # if file is on another computer
+        else:
             ip_to_connect = self.file_handler.extract_ip(self.user_name, path)
             # setting up pear to pear
             if ip_to_connect not in self.ip_comm:
@@ -445,6 +518,7 @@ class MainUserClient:
         success = vars[0]
         if success == 'ok':
             print('you are signed in')
+
             self.file_handler = FileHandler(self.user_name)
             user_path = self.file_handler.user_path[:-1]
             self.folders = {user_path: [',']}
@@ -485,6 +559,7 @@ class MainUserClient:
         """
         to_send = protocol.pack_sign_in(self.user_name, password, get_mac_address())
         self.client.send(to_send)
+
 
 
 

@@ -64,8 +64,10 @@ def handle_open_file(got_ip: str, server: ServerComm, vars: list):
             file = f.read()
 
         print('path:', path)
-        server.send(got_ip, client_protocol.pack_status_open_file(True, path))
-        server.send(got_ip, file)
+        server.send_file(got_ip, path, file)
+
+        # server.send(got_ip, client_protocol.pack_status_open_file(True, path))
+        # server.send(got_ip, file)
 
     else:
         server.send(got_ip, client_protocol.pack_status_open_file(False))
@@ -91,7 +93,6 @@ def handle_rename(client: ClientComm, vars: list):
     location, new_name = vars
     status = FileHandler.rename(location, new_name)
     client.send(client_protocol.pack_status_rename(status, location, new_name))
-
 
 
 def handle_delete(client: ClientComm, vars: list):

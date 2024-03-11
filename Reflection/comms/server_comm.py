@@ -66,7 +66,9 @@ class ServerComm:
 
                     if data[:2] in self.file_receive_opcodes:
                         self.receiving_files.append(current_socket)
-                        threading.Thread(target=self._receive_file(current_socket, data))
+
+                        # maybe thread
+                        self._receive_file(current_socket, data)
 
                     else:
                         print(f'data: {data}')
@@ -80,6 +82,7 @@ class ServerComm:
         :param header: header of file
         :return: None
         """
+        count = 0
         try:
             data_len = int(client.recv(self.send_len).decode())
         except Exception as e:
@@ -91,11 +94,13 @@ class ServerComm:
 
             # receiving file in parts
             while len(file) < data_len and file_is_ok:
-
                 size = data_len - len(file)
                 if size > 1024:
                     try:
-                        file.extend(client.recv(1024))
+                        got = client.recv(1024)
+                        print('count:', count, '     got:', got)
+                        count += 1
+                        file.extend(got)
                     except Exception as e:
                         self.disconnect_client(client)
                         print('error in receiving file:', str(e))
@@ -103,20 +108,22 @@ class ServerComm:
 
                 else:
                     try:
-                        file.extend(client.recv(size))
+                        got = client.recv(size)
+                        print('count:', count, '     got:', got)
+                        count += 1
+                        file.extend(got)
                     except Exception as e:
                         self.disconnect_client(client)
                         print('error in receiving file:', str(e))
                         file_is_ok = False
 
             if file_is_ok:
-                print('ok this got interesting all of a sudden')
                 file = bytes(file)
                 print(file)
                 file = self.open_clients[client][1].decrypt(file, True)
                 path = header[2:]
-                print('path:', path)
                 ip = '\\' + self.my_ip
+                print(f'saving in {path}: {file}')
                 if ip in path:
 
                     path = path.replace(ip, '')
@@ -125,7 +132,8 @@ class ServerComm:
                         save.write(file)
 
                     # self.rcv_q.put()
-
+            else:
+                print('what and what and what')
         if client in self.receiving_files:
             self.receiving_files.remove(client)
 
@@ -256,6 +264,28 @@ class ServerComm:
             except Exception as e:
                 print('server comm - send', str(e))
                 self.disconnect_client(sock)
+
+    def send_file(self, ip, path, data):
+        """
+        sends file to client
+        :param ip: ip of client
+        :param path: path of the file
+        :param data: data of the file (binary)
+        :return: None
+        """
+        header = general_client_protocol.pack_status_open_file(True, path)
+        client = self._find_socket_by_ip(ip)
+        if client:
+            symmetric = self.open_clients[client][1]
+            header = symmetric.encrypt(header)
+            data = symmetric.encrypt(data)
+            header_len = str(len(header)).zfill(self.send_len).encode()
+            data_len = str(len(data)).zfill(self.send_len).encode()
+            try:
+                client.send(header_len + header + data_len + data)
+            except Exception as e:
+                print('server comm - send', str(e))
+                self.disconnect_client(client)
 
     def close_server(self):
         self.is_running = False
