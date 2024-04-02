@@ -33,15 +33,18 @@ class FileHandler:
 
 
     @ staticmethod
-    def copy_file(where: str, to: str):
+    def copy_file(from_path: str, to: str):
         """
-        moves a file
-        :param where: original path
+        copies a file
+        :param from_path: original path
         :param to: new path
-        :return: None
+        :return: if was able to copy file
         """
-        shutil.copy(where, to)
-
+        worked = os.path.isfile(from_path)
+        print('file_path:', from_path)
+        if worked:
+            shutil.copy(from_path, to)
+        return worked
     @ staticmethod
     def rename(path: str, new_name: str):
         """

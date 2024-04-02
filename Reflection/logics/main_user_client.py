@@ -114,9 +114,7 @@ class MainUserClient:
                 self.ip_comm[ip_to_send] = comm
                 threading.Thread(target=self.rcv_comm, args=(rcv_q,), daemon=True).start()
 
-            # comm.send(protocol.pack_change_file(to_path))
-            # print('protocol send:', protocol.pack_change_file(to_path))
-            # comm.send(file_data)
+
             comm.send_file(to_path, file_data)
 
     def visualize_open_file(self, file_path):
@@ -204,7 +202,9 @@ class MainUserClient:
                 dir_path, from_path = param_got.split(',')
                 name = os.path.basename(from_path)
                 to_path = f'{dir_path}\\{name}'
-                name, typ = name.split('.')
+                typ_index = name.rfind('.')
+                typ = name[typ_index + 1:]
+                name = name[:typ_index]
 
                 self.handle_status_create(['ok', f'{dir_path}\\{name}', typ])
                 self.save_file(from_path, to_path)
@@ -225,8 +225,42 @@ class MainUserClient:
                 print('local path:', download_to)
                 self.get_file_data(downloaded)
 
+            elif command == 'copy':
+                if param_got.count(',') != 1:
+                    self.call_error('problem with uploading file')
+                    continue
+                file_to_copy, copy_to = param_got.split(',')
+                self.copy(file_to_copy, copy_to)
+
             else:
                 print('hi')
+
+    def copy(self, file_to_copy: str, copy_to: str):
+        if copy_to not in self.folders:
+            copy_to, _ = FileHandler.split_path_last_part(copy_to)
+
+        if self.file_handler.is_local(copy_to) and self.file_handler.is_local(file_to_copy):
+            file_folder, file_name = FileHandler.split_path_last_part(file_to_copy)
+            new_file_name = file_name
+            if file_name in self.folders[copy_to] and file_folder == copy_to:
+                parted_file_name = file_name.split('.')
+                parted_file_name[0] += '(copy)'
+                new_file_name = ''.join(parted_file_name)
+
+            copy_to = FileHandler.remove_ip(self.user_name, copy_to)
+            file_folder = FileHandler.remove_ip(self.user_name, file_folder)
+
+            worked = FileHandler.copy_file(f'{file_folder}\\{file_name}', f'{copy_to}\\{new_file_name}')
+            if worked:
+                print('nice')
+                typ_index = file_name.rfind('.')
+                typ = file_name[typ_index + 1:]
+                file_name = file_name[:typ_index]
+                wx.CallAfter(pub.sendMessage, "create", path=copy_to, name=file_name, typ=typ)
+
+
+
+            
 
     def handle_status_rename(self, vars: list):
         """
@@ -436,6 +470,7 @@ class MainUserClient:
         :param name: name of file
         :param typ: type of file/folder
         """
+        print(self.folders)
         if path.endswith('\\'):
             path = path[:-1]
         if typ == 'fld':
@@ -444,6 +479,7 @@ class MainUserClient:
 
         else:
             self.folders[path].append(f'{name}.{typ}')
+            print()
 
         wx.CallAfter(pub.sendMessage, "create", path=path, name=name, typ=typ)
 

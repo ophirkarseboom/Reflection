@@ -1,6 +1,6 @@
 import time
 import wx
-brown = wx.Colour(165, 132, 82)
+
 import os
 from pubsub import pub
 from Reflection import settings
@@ -8,7 +8,7 @@ from queue import Queue
 from Reflection.graphics.tree_graphic import TreeFrame
 from Reflection.graphics import notification
 
-
+brown = wx.Colour(165, 132, 82)
 class MyFrame(wx.Frame):
 
     def __init__(self, logic_q: Queue):

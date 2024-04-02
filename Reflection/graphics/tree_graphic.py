@@ -7,8 +7,6 @@ from Reflection import settings
 from queue import Queue
 from Reflection.graphics import notification
 from Reflection.local_handler.file_handler import FileHandler
-import sys
-
 
 class CreateFileDialog(wx.Dialog):
     def __init__(self, parent, title: str, is_folder):
@@ -65,7 +63,7 @@ class TreeFrame(wx.Frame):
                    "tif", "tiff"]
     def __init__(self, parent, command_q: Queue):
         # wx.Panel.__init__(self, parent, -1)
-        wx.Frame.__init__(self, parent, pos=wx.DefaultPosition)
+        wx.Frame.__init__(self, parent, pos=wx.DefaultPosition, size=(500, 500))
         self.cwd = settings.Settings.pic_path
         self.tree = wx.TreeCtrl(self, style=wx.TR_HIDE_ROOT)
         self.file_commands = ('open', 'delete', 'rename', 'download')
@@ -73,10 +71,17 @@ class TreeFrame(wx.Frame):
         self.root = self.tree.AddRoot("root")
         self.command_q = command_q
         self.folders = []
-        self.image_list = wx.ImageList(16, 16)
+        self.image_size = 16
+        self.item_image_path = {}
+        self.image_list = wx.ImageList(self.image_size, self.image_size)
         self.tree.AssignImageList(self.image_list)
         self.path_item = {}
         self.forbidden = ('*', ',', '\\', '/', '[', ']', '{', '}', '?', '<', '>', ' ', ':', '|')
+        self.on_clipboard_path = None
+
+        self.font = wx.Font(self.image_size * 0.7, wx.FONTFAMILY_MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
+        self.tree.SetFont(self.font)
+        self.tree.SetForegroundColour(wx.Colour(255, 255, 255))
 
         self.tree.Bind(wx.EVT_TREE_ITEM_ACTIVATED, self.on_double_clicked)
         self.tree.Bind(wx.EVT_TREE_ITEM_EXPANDED, self.on_expanded)
@@ -84,23 +89,169 @@ class TreeFrame(wx.Frame):
         self.tree.Bind(wx.EVT_TREE_ITEM_RIGHT_CLICK, self.on_right_click)
         self.tree.Bind(wx.EVT_TREE_BEGIN_DRAG, self.on_drag)
         self.tree.Bind(wx.EVT_TREE_END_DRAG, self.stop_drag)
+        self.tree.Bind(wx.EVT_CHAR_HOOK, self.copy_paste)
+        self.tree.Bind(wx.EVT_MOUSEWHEEL, self.change_size)
 
         pub.subscribe(self.convert_to_tree, "update_tree")
         pub.subscribe(self.add_object, "create")
         pub.subscribe(self.delete_object, "delete")
         pub.subscribe(notification.show_error, "error")
 
+        self.tree.SetBackgroundColour(wx.Colour(30, 30, 30))
+
+
         self.Show()
 
+
+    def change_size(self, evt: wx.MouseEvent):
+        """
+        changes size of font and pictures
+        :param evt: mouse scroll up or down
+        :return: None
+        """
+        if not evt.CmdDown():
+            evt.Skip()
+            return
+
+        # bounds
+        if self.image_size < 10 or self.image_size > 30:
+            if self.image_size < 10:
+                self.image_size = 10
+            else:
+                self.image_size = 30
+
+        if evt.GetWheelRotation() > 0:
+            self.image_size += 1
+        else:
+            self.image_size -= 1
+
+        # changing font
+        self.font.SetPointSize(self.image_size)
+        self.tree.SetFont(self.font)
+
+        self.image_list = wx.ImageList(self.image_size, self.image_size)
+        self.tree.AssignImageList(self.image_list)
+
+        # resizing every image
+        for item in self.item_image_path:
+            path = self.item_image_path[item]
+            result = wx.Bitmap(path)
+            image = result.ConvertToImage()
+            image = image.Scale(self.image_size, self.image_size, wx.IMAGE_QUALITY_HIGH)
+            image = self.image_list.Add(image.ConvertToBitmap())
+            self.tree.SetItemImage(item, image, wx.TreeItemIcon_Normal)
+
+
+
+
+    def add_pic(self, item, name: str, is_folder: bool):
+        """
+        gets item and adds correct image to it
+        :param item: object in tree
+        :param name: name of item
+        :return: None
+        """
+
+        if is_folder:
+            pic_name = self.close_folder_name
+        else:
+            print(name)
+            typ_index = name.rfind('.')
+            typ = name[typ_index + 1:]
+            name = name[:typ_index]
+            pic_name = typ
+            if typ in TreeFrame.image_types:
+                pic_name = 'pic'
+            pic_name += '.png'
+            if pic_name not in os.listdir(settings.Settings.pic_path):
+                pic_name = 'txt.png'
+
+        pic_path = self.cwd + pic_name
+        self.put_pic_for_item(pic_path, item)
+
+    def put_pic_for_item(self, pic_path: str, item: wx.TreeItemId):
+        """
+        changes pic for certain item
+        :param pic_path: path of the pic
+        :param item: the item in tree
+        :return: None
+        """
+        item_image = wx.Image(pic_path, wx.BITMAP_TYPE_PNG).Scale(self.image_size, self.image_size)
+        self.item_image_path[item] = pic_path
+        item_image = item_image.ConvertToBitmap()
+        item_image = self.image_list.Add(item_image)
+        self.tree.SetItemImage(item, item_image, wx.TreeItemIcon_Normal)
+
+
+    def on_expanded(self, evt):
+        """
+        gets evt and does stuff for expanded item
+        :param evt: event happened
+        :return: None
+        """
+        item = evt.GetItem()
+        pic_path = self.cwd + self.open_folder_name
+        self.put_pic_for_item(pic_path, item)
+
+    def on_collapsed(self, evt):
+        """
+       gets evt and does stuff for collapsed item
+       :param evt: event happened
+       :return: None
+       """
+        item = evt.GetItem()
+        pic_path = self.cwd + self.close_folder_name
+        self.put_pic_for_item(pic_path, item)
+
+    def copy_paste(self, evt: wx.KeyEvent):
+        """
+        get key pressed and tells logic if got copy or paste
+        :param evt: key event
+        :return: None
+        """
+        key_code = evt.GetKeyCode()
+        ctrl_down = evt.CmdDown()
+        if ctrl_down:
+
+            # copy
+            if key_code == 67:
+                on_item = self.tree.GetFocusedItem()
+                on_item_path = self.tree.GetItemData(on_item)
+                print('copy')
+                if on_item_path in self.folders:
+                    notification.show_error('cannot copy folder')
+                else:
+                    self.on_clipboard_path = on_item_path
+
+            # paste
+            elif key_code == 86:
+                on_item = self.tree.GetFocusedItem()
+                on_item_path = self.tree.GetItemData(on_item)
+                print('paste')
+                if self.on_clipboard_path:
+
+                    self.command_q.put(('copy', f'{self.on_clipboard_path},{on_item_path}'))
+
     def stop_drag(self, evt):
+        """
+        tells graphic when drag stopped and where
+        :param evt: event got
+        :return: None
+        """
+        self.SetCursor(wx.Cursor())
         draged_on = evt.GetItem()
         print('draged_on:', self.tree.GetItemData(draged_on))
 
     def on_drag(self, evt):
-
+        """
+        lets drag start visually and keeps item dragged
+        :param evt: event got
+        :return: None
+        """
         evt.Allow()
-        self.drag_item = self.tree.GetItemData(evt.GetItem())
-
+        self.drag_item = evt.GetItem()
+        cursor = wx.Cursor(wx.Image(self.item_image_path[self.drag_item]))
+        self.SetCursor(cursor)
         print(self.drag_item)
 
     def valid_input(self, file_name: str, is_folder: bool):
@@ -273,28 +424,6 @@ class TreeFrame(wx.Frame):
                 self.folders.append(path)
                 self.convert_to_tree(dic, new_item)
 
-    def add_pic(self, item, name: str, is_folder: bool):
-        """
-        gets item and adds correct image to it
-        :param item: object in tree
-        :param name: name of item
-        :return: None
-        """
-
-        if is_folder:
-            pic_name = self.close_folder_name
-        else:
-
-            name, typ = name.split('.')
-            pic_name = typ
-            if typ in TreeFrame.image_types:
-                pic_name = 'pic'
-            pic_name += '.png'
-            if pic_name not in os.listdir(settings.Settings.pic_path):
-                pic_name = 'txt.png'
-        item_image = self.image_list.Add(
-            wx.Image(self.cwd + pic_name, wx.BITMAP_TYPE_PNG).Scale(16, 16).ConvertToBitmap())
-        self.tree.SetItemImage(item, item_image, wx.TreeItemIcon_Normal)
 
     def on_double_clicked(self, evt):
         """
@@ -313,30 +442,6 @@ class TreeFrame(wx.Frame):
         # open file
         else:
             self.command_q.put(('open', path))
-    def on_expanded(self, evt):
-        """
-        gets evt and does stuff for expanded item
-        :param evt: event happened
-        :return: None
-        """
-        item = evt.GetItem()
-
-        item_image = self.image_list.Add(
-            wx.Image(self.cwd + self.open_folder_name, wx.BITMAP_TYPE_PNG).Scale(16, 16).ConvertToBitmap())
-        self.tree.SetItemImage(item, item_image, wx.TreeItemIcon_Normal)
-
-        self.SetClientSize(self.GetBestSize())
-    def on_collapsed(self, evt):
-        """
-       gets evt and does stuff for collapsed item
-       :param evt: event happened
-       :return: None
-       """
-        item = evt.GetItem()
-        item_image = self.image_list.Add(
-            wx.Image(self.cwd + self.close_folder_name, wx.BITMAP_TYPE_PNG).Scale(16, 16).ConvertToBitmap())
-        self.tree.SetItemImage(item, item_image, wx.TreeItemIcon_Normal)
-        self.SetClientSize(self.GetBestSize())
 
 
 

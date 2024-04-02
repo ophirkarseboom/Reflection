@@ -7,7 +7,6 @@ image_types = ["apng", "avif", "gif", "jpg", "jpeg", "jfif", "pjpeg", "pjp", "pn
 default_for_type = {'docx': 'WINWORD.EXE',
                     'pptx': 'POWERPNT.EXE',
                     'ppt': 'POWERPNT.EXE',
-                    'zip': 'explorer.exe',
                     **{img: 'Microsoft.Photos.exe' for img in image_types},
                     'xlsx': 'EXCEL.EXE'}
 

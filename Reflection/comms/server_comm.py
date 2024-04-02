@@ -98,7 +98,6 @@ class ServerComm:
                 if size > 1024:
                     try:
                         got = client.recv(1024)
-                        print('count:', count, '     got:', got)
                         count += 1
                         file.extend(got)
                     except Exception as e:
@@ -109,7 +108,6 @@ class ServerComm:
                 else:
                     try:
                         got = client.recv(size)
-                        print('count:', count, '     got:', got)
                         count += 1
                         file.extend(got)
                     except Exception as e:

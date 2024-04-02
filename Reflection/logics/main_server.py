@@ -5,7 +5,7 @@ from Reflection.database import db
 from Reflection.protocols import server_protocol as protocol
 from Reflection.encryption import symmetrical_encryption
 from Reflection.local_handler.file_handler import FileHandler
-
+import re
 
 
 def handle_disconnect(client_ip: str, called_by_server_comm: bool):
@@ -123,11 +123,11 @@ def handle_got_file_tree(got_ip, vars: list):
             ip_to_send = None
 
         if got_ok and ip_to_send in user_comps and got_ip in user_comps[ip_to_send]:
-            # inserting ip got in file_tree
-            file_tree = FileHandler.insert_ip(file_tree, user_to_send, got_ip[0])
+
+            result = replace_outside_brackets(file_tree, user_to_send, f'{user_to_send}\\{got_ip[0]}')
 
             # sending file tree to user
-            server_comm.send(ip_to_send, protocol.pack_send_file_tree(file_tree))
+            server_comm.send(ip_to_send, protocol.pack_send_file_tree(result))
         else:
             got_ok = False
     else:
@@ -136,6 +136,37 @@ def handle_got_file_tree(got_ip, vars: list):
     if not got_ok:
         print('error in getting file tree')
         handle_disconnect(got_ip, False)
+
+
+def replace_outside_brackets(input_str: str, string_to_replace: str, replacement: str):
+    """
+    replaces a certain string only outside brackets
+    :param input_str: entire string
+    :param string_to_replace: what to replace
+    :param replacement: what ot replace it with
+    :return: new string
+    """
+    result = ''
+    inside_brackets = False
+    index = 0
+
+    while index < len(input_str):
+        if input_str[index] == '[':
+            inside_brackets = True
+            result += input_str[index]
+            index += 1
+        elif input_str[index] == ']':
+            inside_brackets = False
+            result += input_str[index]
+            index += 1
+        elif input_str[index:index + len(string_to_replace)] == string_to_replace and not inside_brackets:
+            result += replacement
+            index += len(string_to_replace)
+        else:
+            result += input_str[index]
+            index += 1
+
+    return result
 
 def handle_got_mac(client_ip: str, vars: list):
     """
