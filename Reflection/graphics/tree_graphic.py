@@ -76,7 +76,7 @@ class TreeFrame(wx.Frame):
         self.image_list = wx.ImageList(self.image_size, self.image_size)
         self.tree.AssignImageList(self.image_list)
         self.path_item = {}
-        self.forbidden = ('*', ',', '\\', '/', '[', ']', '{', '}', '?', '<', '>', ' ', ':', '|')
+        self.forbidden = ('*', ',', '\\', '/', '[', ']', '{', '}', '?', '<', '>', ' ', ':', '|', '(', ')', '-')
         self.on_clipboard_path = None
 
         self.font = wx.Font(self.image_size * 0.7, wx.FONTFAMILY_MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
@@ -326,6 +326,8 @@ class TreeFrame(wx.Frame):
         :param name: name of file
         :param typ: type of file\folder
         """
+        print(f'path: {path}')
+        print(f'path_item: {self.path_item}')
         if path not in self.path_item:
             return
 

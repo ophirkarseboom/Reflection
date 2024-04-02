@@ -25,7 +25,7 @@ class MainUserClient:
         self.handle_tree = Queue()
         self.ip_comm = {}
         self.graphic_q = Queue()
-        self.downloads = {} #{local path, path on gui}
+        self.downloads = {}  # {local path, path on gui}
 
         threading.Thread(target=self.rcv_comm, args=(self.server_rcv_q,), daemon=True).start()
         threading.Thread(target=self.rcv_graphic, args=(self.graphic_q,), daemon=True).start()
@@ -33,7 +33,6 @@ class MainUserClient:
         self.frame = MyFrame(self.graphic_q)
         self.frame.Show()
         app.MainLoop()
-
 
     def monitor_file(self, file_path: str):
         """
@@ -65,12 +64,12 @@ class MainUserClient:
             while True:
                 try:
                     result = win32file.ReadDirectoryChangesW(
-                    directory_handle,
-                    4096,
-                    True,  # Watch subtree
-                    FILE_NOTIFY_CHANGE_LAST_WRITE | FILE_NOTIFY_CHANGE_FILE_NAME,
-                    None
-                )
+                        directory_handle,
+                        4096,
+                        True,  # Watch subtree
+                        FILE_NOTIFY_CHANGE_LAST_WRITE | FILE_NOTIFY_CHANGE_FILE_NAME,
+                        None
+                    )
 
                     for action, name_monitored in result:
 
@@ -81,7 +80,6 @@ class MainUserClient:
 
                 except Exception:
                     break
-
 
     def save_file(self, from_path, to_path):
         """
@@ -114,7 +112,6 @@ class MainUserClient:
                 self.ip_comm[ip_to_send] = comm
                 threading.Thread(target=self.rcv_comm, args=(rcv_q,), daemon=True).start()
 
-
             comm.send_file(to_path, file_data)
 
     def visualize_open_file(self, file_path):
@@ -135,7 +132,6 @@ class MainUserClient:
         while True:
             ls2 = process_handler.get_all_pid(process_name)
             if ls2 != ls1:
-
                 break
 
         new_pid = set(ls2) - set(ls1)
@@ -145,7 +141,6 @@ class MainUserClient:
 
         FileHandler.delete(file_path)
         print('ended visualize file')
-
 
     def rcv_graphic(self, q: Queue):
         """
@@ -233,34 +228,54 @@ class MainUserClient:
                 self.copy(file_to_copy, copy_to)
 
             else:
-                print('hi')
+                print('wrong output')
 
     def copy(self, file_to_copy: str, copy_to: str):
+        """
+        copies file from one folder to another
+        :param file_to_copy: full path of of the file to copy
+        :param copy_to: the path to copy the file to
+        :return: None
+        """
+        # if got a file path changing it to the folder
         if copy_to not in self.folders:
             copy_to, _ = FileHandler.split_path_last_part(copy_to)
+
 
         if self.file_handler.is_local(copy_to) and self.file_handler.is_local(file_to_copy):
             file_folder, file_name = FileHandler.split_path_last_part(file_to_copy)
             new_file_name = file_name
-            if file_name in self.folders[copy_to] and file_folder == copy_to:
-                parted_file_name = file_name.split('.')
-                parted_file_name[0] += '(copy)'
-                new_file_name = ''.join(parted_file_name)
 
-            copy_to = FileHandler.remove_ip(self.user_name, copy_to)
+            # if file name is already in directory
+            if file_name in self.folders[copy_to] and file_folder == copy_to:
+                if '(copy)' not in file_name:
+                    parted_file_name = file_name.split('.')
+                    parted_file_name[0] += '(copy)'
+                    new_file_name = '.'.join(parted_file_name)
+
+                # adding count numbers if copied several times
+                count = 1
+                while True:
+                    print('new_file_name:', new_file_name)
+                    print('in copy to:', self.folders[copy_to])
+                    if new_file_name in self.folders[copy_to]:
+                        parted_file_name = new_file_name.split('.')
+                        parted_file_name[0] = parted_file_name[0].split('-')[0] + f'-{count}'
+                        new_file_name = '.'.join(parted_file_name)
+                        count += 1
+                    else:
+                        break
+
+            # making folders local
+            local_copy_to = FileHandler.remove_ip(self.user_name, copy_to)
             file_folder = FileHandler.remove_ip(self.user_name, file_folder)
 
-            worked = FileHandler.copy_file(f'{file_folder}\\{file_name}', f'{copy_to}\\{new_file_name}')
+            worked = FileHandler.copy_file(f'{file_folder}\\{file_name}', f'{local_copy_to}\\{new_file_name}')
             if worked:
-                print('nice')
-                typ_index = file_name.rfind('.')
-                typ = file_name[typ_index + 1:]
-                file_name = file_name[:typ_index]
-                wx.CallAfter(pub.sendMessage, "create", path=copy_to, name=file_name, typ=typ)
-
-
-
-            
+                typ_index = new_file_name.rfind('.')
+                typ = new_file_name[typ_index + 1:]
+                file_name = new_file_name[:typ_index]
+                self.folders_add(copy_to, file_name, typ)
 
     def handle_status_rename(self, vars: list):
         """
@@ -311,7 +326,6 @@ class MainUserClient:
         else:
             self.client.send(protocol.pack_do_rename(path, new_name))
 
-
     def call_error(self, error: str):
         """
         gets error and sends it to graphic
@@ -346,7 +360,8 @@ class MainUserClient:
         """
 
         commands = {'02': self.handle_status_register, '04': self.handle_status_login, '05': self.handle_got_file_tree,
-                    '09': self.handle_status_rename, '07': self.handle_status_create, '17': self.handle_status_open, '11': self.handle_status_delete}
+                    '09': self.handle_status_rename, '07': self.handle_status_create, '17': self.handle_status_open,
+                    '11': self.handle_status_delete}
         while True:
             data = protocol.unpack(q.get())
             if not data:
@@ -383,7 +398,6 @@ class MainUserClient:
             new_folders[user_path].insert(0, ip)
             wx.CallAfter(pub.sendMessage, "update_tree", dic=new_folders)
 
-
     def handle_status_open(self, vars: list):
         """
         showing user the file if opened
@@ -401,7 +415,6 @@ class MainUserClient:
 
             if download_path in self.downloads.values():
                 local_path = next(filter(lambda item: item[1] == download_path, self.downloads.items()), None)[0]
-                print('hi nice')
                 FileHandler.copy_file(path, local_path)
                 del self.downloads[local_path]
 
@@ -544,7 +557,6 @@ class MainUserClient:
         else:
             self.call_error('username already exists')
 
-
     def handle_status_login(self, vars):
         """
         gets status, shows user what happened also creates hidden root directory if success and starts navigate folder
@@ -595,8 +607,6 @@ class MainUserClient:
         """
         to_send = protocol.pack_sign_in(self.user_name, password, get_mac_address())
         self.client.send(to_send)
-
-
 
 
 def get_mac_address():
