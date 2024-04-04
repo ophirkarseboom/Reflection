@@ -225,12 +225,12 @@ class MainUserClient:
                     self.call_error('problem with uploading file')
                     continue
                 file_to_copy, copy_to = param_got.split(',')
-                self.copy(file_to_copy, copy_to)
+                self.clone(file_to_copy, copy_to)
 
             else:
                 print('wrong output')
 
-    def copy(self, file_to_copy: str, copy_to: str):
+    def clone(self, file_to_copy: str, copy_to: str):
         """
         copies file from one folder to another
         :param file_to_copy: full path of of the file to copy
@@ -241,41 +241,33 @@ class MainUserClient:
         if copy_to not in self.folders:
             copy_to, _ = FileHandler.split_path_last_part(copy_to)
 
-
+        ip_from = FileHandler.extract_ip(self.user_name, file_to_copy)
+        ip_to = FileHandler.extract_ip(self.user_name, copy_to)
         if self.file_handler.is_local(copy_to) and self.file_handler.is_local(file_to_copy):
-            file_folder, file_name = FileHandler.split_path_last_part(file_to_copy)
-            new_file_name = file_name
-
-            # if file name is already in directory
-            if file_name in self.folders[copy_to] and file_folder == copy_to:
-                if '(copy)' not in file_name:
-                    parted_file_name = file_name.split('.')
-                    parted_file_name[0] += '(copy)'
-                    new_file_name = '.'.join(parted_file_name)
-
-                # adding count numbers if copied several times
-                count = 1
-                while True:
-                    print('new_file_name:', new_file_name)
-                    print('in copy to:', self.folders[copy_to])
-                    if new_file_name in self.folders[copy_to]:
-                        parted_file_name = new_file_name.split('.')
-                        parted_file_name[0] = parted_file_name[0].split('-')[0] + f'-{count}'
-                        new_file_name = '.'.join(parted_file_name)
-                        count += 1
-                    else:
-                        break
 
             # making folders local
             local_copy_to = FileHandler.remove_ip(self.user_name, copy_to)
-            file_folder = FileHandler.remove_ip(self.user_name, file_folder)
+            local_file_to_copy = FileHandler.remove_ip(self.user_name, file_to_copy)
 
-            worked = FileHandler.copy_file(f'{file_folder}\\{file_name}', f'{local_copy_to}\\{new_file_name}')
-            if worked:
+            file_folder, file_name = FileHandler.split_path_last_part(local_file_to_copy)
+
+            new_file_name = FileHandler.build_clone_file(local_copy_to, local_file_to_copy)
+            print('new_file_name:', new_file_name)
+            print('local_copy_to:', local_copy_to)
+
+            copied = FileHandler.direct_copy_file(f'{file_folder}\\{file_name}',
+                                                  f'{local_copy_to}\\{new_file_name}')
+
+            if copied:
                 typ_index = new_file_name.rfind('.')
                 typ = new_file_name[typ_index + 1:]
                 file_name = new_file_name[:typ_index]
                 self.folders_add(copy_to, file_name, typ)
+
+
+
+        elif ip_from == ip_to:
+            self.client.send(protocol.pack_do_clone(file_to_copy, copy_to))
 
     def handle_status_rename(self, vars: list):
         """
@@ -415,7 +407,7 @@ class MainUserClient:
 
             if download_path in self.downloads.values():
                 local_path = next(filter(lambda item: item[1] == download_path, self.downloads.items()), None)[0]
-                FileHandler.copy_file(path, local_path)
+                FileHandler.direct_copy_file(path, local_path)
                 del self.downloads[local_path]
 
             elif os.path.isfile(path):
@@ -443,7 +435,7 @@ class MainUserClient:
             download_from_path = FileHandler.remove_ip(self.user_name, self.downloads[path])
             print('download from:', download_from_path)
             print('download to:', path)
-            FileHandler.copy_file(download_from_path, path)
+            FileHandler.direct_copy_file(download_from_path, path)
             del self.downloads[path]
 
         # if file is on another computer

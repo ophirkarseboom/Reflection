@@ -222,7 +222,7 @@ def got_rename(got_ip: str, vars: str):
     """
     sending appropriate client to rename object
     :param got_ip: ip sent from
-    :param vars: location of object ot rename and name to rename it to
+    :param vars: location of object to rename and name to rename it to
     :return: None
     """
 
@@ -237,6 +237,31 @@ def got_rename(got_ip: str, vars: str):
     ip_to_send = (ip_to_send, 'G')
     location = FileHandler.remove_ip(user_got, location)
     server_comm.send(ip_to_send, protocol.pack_do_rename(location, new_name))
+
+
+
+def got_clone(got_ip: str, vars: str):
+    """
+    sending appropriate client to clone object
+    :param got_ip: ip sent from
+    :param vars: location of object to clone and place to clone to
+    :return: None
+    """
+
+    if len(vars) != 2:
+
+        handle_disconnect(got_ip, False)
+        return
+
+    copy_from, copy_to = vars
+    user_got = get_key_by_value(username_ip, got_ip)
+    ip_from = FileHandler.extract_ip(user_got, copy_from)
+    ip_to = FileHandler.extract_ip(user_got, copy_to)
+    if ip_from == ip_to:
+        ip_to_send = (ip_from, 'G')
+        path_from = FileHandler.remove_ip(user_got, copy_from)
+        path_to = FileHandler.remove_ip(user_got, copy_to)
+        server_comm.send(ip_to_send, protocol.pack_do_clone(path_from, path_to))
 
 
 def handle_status_rename(got_ip: str, vars: str):

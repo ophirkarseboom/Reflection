@@ -33,7 +33,36 @@ class FileHandler:
 
 
     @ staticmethod
-    def copy_file(from_path: str, to: str):
+    def build_clone_file(copy_to: str, file_to_copy: str):
+        """
+        building a name to a copy of a file
+        :param copy_to: path of folder to copy to
+        :param file_to_copy: path of file to copy
+        :return: new copied file name
+        """
+        file_folder, file_name = FileHandler.split_path_last_part(file_to_copy)
+        new_file_name = file_name
+        if file_name in os.listdir(copy_to):
+            if '(copy)' not in file_name:
+                parted_file_name = file_name.split('.')
+                parted_file_name[0] += '(copy)'
+                new_file_name = '.'.join(parted_file_name)
+
+            # adding count numbers if copied several times
+            count = 1
+            while True:
+                if new_file_name in os.listdir(copy_to):
+                    parted_file_name = new_file_name.split('.')
+                    parted_file_name[0] = parted_file_name[0].split('-')[0] + f'-{count}'
+                    new_file_name = '.'.join(parted_file_name)
+                    count += 1
+                else:
+                    break
+
+        return new_file_name
+
+    @ staticmethod
+    def direct_copy_file(from_path: str, to: str):
         """
         copies a file
         :param from_path: original path
@@ -45,6 +74,9 @@ class FileHandler:
         if worked:
             shutil.copy(from_path, to)
         return worked
+
+
+
     @ staticmethod
     def rename(path: str, new_name: str):
         """

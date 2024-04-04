@@ -3,14 +3,14 @@ from uuid import getnode
 import socket
 
 class Settings:
-    server_ip = '10.100.102.28'
+    server_ip = '192.168.4.94'
     server_port = 2000
-    root = 'C:\\reflection\\'
+    root = 'D:\\reflection\\'
     pear_port = 2500
     local_path_directory = 'localChange\\'
     local_changes_path = f'{root}{local_path_directory}'
-    pic_path = r'C:\Users\ophir\PycharmProjects\Reflection\Reflection\graphics\icons\\'
-
+    pic_path = r'T:\public\cyber\ophir\Reflection\Reflection\graphics\icons\\'
+    icon_path = pic_path + 'icon_black.png'
     @staticmethod
     def get_ip():
         """

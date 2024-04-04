@@ -91,7 +91,7 @@ class TreeFrame(wx.Frame):
         self.tree.Bind(wx.EVT_TREE_END_DRAG, self.stop_drag)
         self.tree.Bind(wx.EVT_CHAR_HOOK, self.copy_paste)
         self.tree.Bind(wx.EVT_MOUSEWHEEL, self.change_size)
-
+        self.SetIcon(wx.Icon(settings.Settings.icon_path))
         pub.subscribe(self.convert_to_tree, "update_tree")
         pub.subscribe(self.add_object, "create")
         pub.subscribe(self.delete_object, "delete")

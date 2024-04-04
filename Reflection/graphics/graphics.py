@@ -23,6 +23,7 @@ class MyFrame(wx.Frame):
         self.logic_q = logic_q
         # self.tree = TreePanel(self, self.logic_q)
 
+        self.SetIcon(wx.Icon(settings.Settings.icon_path))
         # self.panel.Show()
 
         box = wx.BoxSizer(wx.VERTICAL)

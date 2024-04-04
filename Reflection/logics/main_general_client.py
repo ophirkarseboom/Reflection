@@ -95,6 +95,19 @@ def handle_rename(client: ClientComm, vars: list):
     client.send(client_protocol.pack_status_rename(status, location, new_name))
 
 
+def handle_clone(client: ClientComm, vars: list):
+    """
+    renames a file\folder
+    :param client: client comm
+    :param vars: location of object to rename and the new name
+    :return: None
+    """
+    copy_from, copy_to = vars
+    new_file_name = FileHandler.build_clone_file(copy_from, copy_to)
+    status = FileHandler.direct_copy_file(copy_from, copy_to + new_file_name)
+    client.send(client_protocol.pack_status_clone(status, copy_from, copy_to))
+
+
 def handle_delete(client: ClientComm, vars: list):
     """
     deletes what server sent if possible and returns status to server
