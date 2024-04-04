@@ -197,9 +197,7 @@ class MainUserClient:
                 dir_path, from_path = param_got.split(',')
                 name = os.path.basename(from_path)
                 to_path = f'{dir_path}\\{name}'
-                typ_index = name.rfind('.')
-                typ = name[typ_index + 1:]
-                name = name[:typ_index]
+                name, typ = FileHandler.split_name_typ(name)
 
                 self.handle_status_create(['ok', f'{dir_path}\\{name}', typ])
                 self.save_file(from_path, to_path)
@@ -259,12 +257,8 @@ class MainUserClient:
                                                   f'{local_copy_to}\\{new_file_name}')
 
             if copied:
-                typ_index = new_file_name.rfind('.')
-                typ = new_file_name[typ_index + 1:]
-                file_name = new_file_name[:typ_index]
+                file_name, typ = FileHandler.split_name_typ(new_file_name)
                 self.folders_add(copy_to, file_name, typ)
-
-
 
         elif ip_from == ip_to:
             self.client.send(protocol.pack_do_clone(file_to_copy, copy_to))
@@ -277,10 +271,10 @@ class MainUserClient:
         """
         status, location, new_name = vars
         if '.' in new_name:
-            just_name, typ = new_name.split('.')
+            just_name, typ = FileHandler.split_name_typ(new_name)
         else:
             typ = 'fld'
-            just_name = new_name.split('.')[0]
+            just_name, _ = FileHandler.split_name_typ(new_name)
         # do local stuff of creating file
         if status == 'ok':
             self.folders_remove(location)
@@ -288,6 +282,25 @@ class MainUserClient:
             self.folders_add(folder_path, just_name, typ)
         else:
             self.call_error(f'could not rename to "{new_name}"')
+
+
+    def handle_status_clone(self, vars: list):
+        """
+        gets status of renaming and shows user what happened
+        :param vars: status, location, new_name
+        :return: None
+        """
+        status, copy_from, copy_to = vars
+        if '.' in copy_from:
+            just_name, typ = FileHandler.split_name_typ(copy_from)
+        else:
+            typ = 'fld'
+            just_name, _ = FileHandler.split_name_typ(copy_from)
+        # do local stuff of creating file
+        if status == 'ok':
+            self.folders_add(copy_from, just_name, typ)
+        else:
+            self.call_error(f'could not clone {just_name}.{typ}')
 
     def rename(self, path: str, new_name: str):
         """
@@ -303,10 +316,11 @@ class MainUserClient:
         if self.file_handler.is_local(path):
             local = self.file_handler.remove_ip(self.user_name, path)
             if '.' in new_name:
-                just_name, typ = new_name.split('.')
+                just_name, typ = FileHandler.split_name_typ(new_name)
             else:
                 typ = 'fld'
-                just_name = new_name.split('.')[0]
+                just_name, _ = FileHandler.split_name_typ(new_name)
+
             # do local stuff of creating file
             if self.file_handler.rename(local, new_name):
 

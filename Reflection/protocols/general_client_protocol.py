@@ -109,9 +109,11 @@ def pack_status_move(status: bool):
     return packed
 
 
-def pack_status_clone(status: bool):
+def pack_status_clone(status: bool, copy_from: str, copy_to: str):
     """
     gets a boolean that tells if action worked or not and returns the packed str
+    :param copy_to: folder to copy to
+    :param copy_from: path to copy from
     :param status: boolean (success of failure)
     :return: packed str
     """
@@ -121,7 +123,7 @@ def pack_status_clone(status: bool):
     else:
         packed += 'no'
 
-    return packed
+    return f'{packed},{copy_from},{copy_to}'
 
 
 def pack_status_open_file(status: bool, path=''):

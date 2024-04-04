@@ -33,6 +33,18 @@ class FileHandler:
 
 
     @ staticmethod
+    def split_name_typ(name: str):
+        """
+        splits name and type
+        :param name: name of file
+        :return: name parted (name, type)
+        """
+        typ_index = name.rfind('.')
+        typ = name[typ_index + 1:]
+        name = name[:typ_index]
+        return name, typ
+
+    @ staticmethod
     def build_clone_file(copy_to: str, file_to_copy: str):
         """
         building a name to a copy of a file

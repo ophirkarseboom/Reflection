@@ -285,6 +285,29 @@ def handle_status_rename(got_ip: str, vars: str):
     status = status == 'ok'
     server_comm.send(ip_to_send, protocol.pack_status_rename(status, location, new_name))
 
+
+def handle_status_clone(got_ip: str, vars: str):
+    """
+    sending user if cloning was success
+    :param got_ip: ip got from
+    :param vars: status, location, new name
+    :return: None
+    """
+    if len(vars) != 3:
+        handle_disconnect(got_ip, False)
+        return
+
+    status, copy_from, copy_to = vars
+    print('status:', status)
+    username = copy_from.replace(FileHandler.root, '')
+    username = username[:username.index('\\')]
+
+    ip_to_send = username_ip[username]
+    copy_from = FileHandler.insert_ip(copy_from, username, got_ip[0])
+    copy_to = FileHandler.insert_ip(copy_from, username, got_ip[0])
+    status = status == 'ok'
+    server_comm.send(ip_to_send, protocol.pack_status_clone(status, copy_from, copy_to))
+
 def handle_status_create(got_ip: str, vars: str):
     """
     sending user if creation was success
