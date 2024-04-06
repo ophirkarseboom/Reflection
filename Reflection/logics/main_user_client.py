@@ -225,13 +225,42 @@ class MainUserClient:
                 file_to_copy, copy_to = param_got.split(',')
                 self.clone(file_to_copy, copy_to)
 
+            elif command == 'move':
+                if param_got.count(',') != 1:
+                    self.call_error('problem with uploading file')
+                    continue
+                file_to_move, move_to = param_got.split(',')
+                self.move(file_to_move, move_to)
+
             else:
                 print('wrong output')
+
+
+    def move(self, file_to_move: str, move_to: str):
+        """
+        moves file from one folder to another
+        :param file_to_move: full path of the file to move
+        :param move_to: the path to move the file to
+        :return: None
+        """
+        # if got a file path changing it to the folder
+        if move_to not in self.folders:
+            move_to, _ = FileHandler.split_path_last_part(move_to)
+
+        ip_from = FileHandler.extract_ip(self.user_name, file_to_move)
+        ip_to = FileHandler.extract_ip(self.user_name, move_to)
+        if self.file_handler.is_local(move_to) and self.file_handler.is_local(file_to_move):
+            # making folders local
+            local_move_to = FileHandler.remove_ip(self.user_name, move_to)
+            local_file_to_move = FileHandler.remove_ip(self.user_name, file_to_move)
+
+            _, file_name = FileHandler.split_path_last_part(local_file_to_move)
+            FileHandler.rename(local_file_to_move, local_move_to + )
 
     def clone(self, file_to_copy: str, copy_to: str):
         """
         copies file from one folder to another
-        :param file_to_copy: full path of of the file to copy
+        :param file_to_copy: full path of the file to copy
         :param copy_to: the path to copy the file to
         :return: None
         """

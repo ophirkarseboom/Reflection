@@ -88,9 +88,10 @@ class TreeFrame(wx.Frame):
         self.tree.Bind(wx.EVT_TREE_ITEM_COLLAPSED, self.on_collapsed)
         self.tree.Bind(wx.EVT_TREE_ITEM_RIGHT_CLICK, self.on_right_click)
         self.tree.Bind(wx.EVT_TREE_BEGIN_DRAG, self.on_drag)
-        self.tree.Bind(wx.EVT_TREE_END_DRAG, self.stop_drag)
+        self.tree.Bind(wx.EVT_TREE_END_DRAG, self.on_drop)
         self.tree.Bind(wx.EVT_CHAR_HOOK, self.copy_paste)
         self.tree.Bind(wx.EVT_MOUSEWHEEL, self.change_size)
+
         self.SetIcon(wx.Icon(settings.Settings.icon_path))
         pub.subscribe(self.convert_to_tree, "update_tree")
         pub.subscribe(self.add_object, "create")
@@ -98,8 +99,6 @@ class TreeFrame(wx.Frame):
         pub.subscribe(notification.show_error, "error")
 
         self.tree.SetBackgroundColour(wx.Colour(30, 30, 30))
-
-
         self.Show()
 
 
@@ -232,15 +231,15 @@ class TreeFrame(wx.Frame):
 
                     self.command_q.put(('copy', f'{self.on_clipboard_path},{on_item_path}'))
 
-    def stop_drag(self, evt):
+    def on_drop(self, evt):
         """
         tells graphic when drag stopped and where
         :param evt: event got
         :return: None
         """
         self.SetCursor(wx.Cursor())
-        draged_on = evt.GetItem()
-        print('draged_on:', self.tree.GetItemData(draged_on))
+        dropped_on = evt.GetItem()
+        print('dropped_on:', self.tree.GetItemData(dropped_on))
 
     def on_drag(self, evt):
         """

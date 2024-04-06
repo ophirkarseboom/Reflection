@@ -30,7 +30,6 @@ class MyFrame(wx.Frame):
         box.Add(self.panel, 1, wx.EXPAND)
         box.Add(self.login, 1, wx.EXPAND)
         box.Add(self.register, 1, wx.EXPAND)
-        # box.Add(self.tree, 1, wx.EXPAND)
 
 
         # arrange the frame
@@ -62,7 +61,6 @@ class MainPanel(wx.Panel):
         self.SetBackgroundColour(brown)
         self.parent = parent
         sizer = wx.BoxSizer(wx.VERTICAL)
-
 
         btnBox = wx.BoxSizer(wx.VERTICAL)
         loginBtn = wx.Button(self, wx.ID_ANY, label="Login", size=(200, 80))

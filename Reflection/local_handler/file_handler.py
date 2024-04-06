@@ -87,7 +87,11 @@ class FileHandler:
             shutil.copy(from_path, to)
         return worked
 
-
+    def move(self, old_path: str, new_path: str):
+        """
+        moves a file
+        :param old_path:
+        """
 
     @ staticmethod
     def rename(path: str, new_name: str):
