@@ -218,7 +218,7 @@ class MainUserClient:
                 print('local path:', download_to)
                 self.get_file_data(downloaded)
 
-            elif command == 'copy':
+            elif command == 'paste':
                 if param_got.count(',') != 1:
                     self.call_error('problem with uploading file')
                     continue
@@ -249,13 +249,40 @@ class MainUserClient:
 
         ip_from = FileHandler.extract_ip(self.user_name, file_to_move)
         ip_to = FileHandler.extract_ip(self.user_name, move_to)
+
+        print('move_to:', move_to)
+        print('file_to_move:', file_to_move)
+
+        file_dir_path, file_name = FileHandler.split_path_last_part(file_to_move)
+
+        # if moving to same dir
+        if move_to == file_dir_path:
+            return
+
         if self.file_handler.is_local(move_to) and self.file_handler.is_local(file_to_move):
             # making folders local
             local_move_to = FileHandler.remove_ip(self.user_name, move_to)
             local_file_to_move = FileHandler.remove_ip(self.user_name, file_to_move)
 
-            _, file_name = FileHandler.split_path_last_part(local_file_to_move)
-            FileHandler.rename(local_file_to_move, local_move_to + )
+            file_name = FileHandler.build_name_for_file(local_move_to, local_file_to_move, '(moved)')
+            moved = FileHandler.move(local_file_to_move, f'{local_move_to}\\{file_name}')
+            if moved:
+                print('removing:', file_to_move)
+                self.folders_remove(file_to_move)
+                print(f'adding: {move_to}\\{file_name}')
+                file_name, typ = FileHandler.split_name_typ(file_name)
+                # general_client_protocol.pack_status_move(moved, local_file_to_move, f'{local_move_to}\\{file_name}')
+                self.folders_add(move_to, file_name, typ)
+                self.folders_remove(file_to_move)
+            else:
+                self.call_error(f'could not move {file_name}')
+
+        elif ip_from == ip_to:
+            self.client.send(protocol.pack_do_move(file_to_move, move_to))
+
+        else:
+            self.call_error('cannot move from 2 different computers')
+
 
     def clone(self, file_to_copy: str, copy_to: str):
         """
@@ -270,6 +297,7 @@ class MainUserClient:
 
         ip_from = FileHandler.extract_ip(self.user_name, file_to_copy)
         ip_to = FileHandler.extract_ip(self.user_name, copy_to)
+
         if self.file_handler.is_local(copy_to) and self.file_handler.is_local(file_to_copy):
 
             # making folders local
@@ -278,7 +306,7 @@ class MainUserClient:
 
             file_folder, file_name = FileHandler.split_path_last_part(local_file_to_copy)
 
-            new_file_name = FileHandler.build_clone_file(local_copy_to, local_file_to_copy)
+            new_file_name = FileHandler.build_name_for_file(local_copy_to, local_file_to_copy, '(copy)')
             print('new_file_name:', new_file_name)
             print('local_copy_to:', local_copy_to)
 
@@ -291,6 +319,9 @@ class MainUserClient:
 
         elif ip_from == ip_to:
             self.client.send(protocol.pack_do_clone(file_to_copy, copy_to))
+
+        else:
+            self.call_error('cannot copy from 2 different computers')
 
     def handle_status_rename(self, vars: list):
         """
@@ -315,19 +346,39 @@ class MainUserClient:
 
     def handle_status_clone(self, vars: list):
         """
-        gets status of renaming and shows user what happened
-        :param vars: status, location, new_name
+        gets status of cloning and shows user what happened
+        :param vars: status, old_location, new_location
         :return: None
         """
         status, copy_from, copy_to = vars
-        if '.' in copy_from:
-            just_name, typ = FileHandler.split_name_typ(copy_from)
-        else:
-            typ = 'fld'
-            just_name, _ = FileHandler.split_name_typ(copy_from)
-        # do local stuff of creating file
+        print('copy_from:', copy_from)
+        print('copy_to:', copy_to)
+        folder_copied_to, file_name = FileHandler.split_path_last_part(copy_to)
+
+        just_name, typ = FileHandler.split_name_typ(file_name)
+
+        # informing graphics
         if status == 'ok':
-            self.folders_add(copy_from, just_name, typ)
+            self.folders_add(folder_copied_to, just_name, typ)
+        else:
+            self.call_error(f'could not clone {just_name}.{typ}')
+
+
+    def handle_status_move(self, vars: list):
+        """
+        gets status of moving and shows user what happened
+        :param vars: status, old_location, new_location
+        :return: None
+        """
+        status, move_from, move_to = vars
+        folder_copied_to, file_name = FileHandler.split_path_last_part(move_to)
+
+        just_name, typ = FileHandler.split_name_typ(file_name)
+
+        # informing graphics
+        if status == 'ok':
+            self.folders_add(folder_copied_to, just_name, typ)
+            self.folders_remove(move_from)
         else:
             self.call_error(f'could not clone {just_name}.{typ}')
 
@@ -335,6 +386,7 @@ class MainUserClient:
         """
         gets path and typ, creates it
         :param path: path of object to create
+        :param new_name: the new name of the file
         :return: None
         """
         # trying to change computers folder
@@ -395,8 +447,8 @@ class MainUserClient:
         """
 
         commands = {'02': self.handle_status_register, '04': self.handle_status_login, '05': self.handle_got_file_tree,
-                    '09': self.handle_status_rename, '07': self.handle_status_create, '17': self.handle_status_open,
-                    '11': self.handle_status_delete}
+                    '09': self.handle_status_rename, '07': self.handle_status_create, '13': self.handle_status_move,
+                    '15': self.handle_status_clone, '17': self.handle_status_open, '11': self.handle_status_delete}
         while True:
             data = protocol.unpack(q.get())
             if not data:
@@ -527,7 +579,6 @@ class MainUserClient:
 
         else:
             self.folders[path].append(f'{name}.{typ}')
-            print()
 
         wx.CallAfter(pub.sendMessage, "create", path=path, name=name, typ=typ)
 

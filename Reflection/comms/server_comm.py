@@ -236,32 +236,35 @@ class ServerComm:
                 break
         return client
 
-    def send(self, ip, data, encrypt=True):
+    def send(self, ips_to_send, data, encrypt=True):
         """
         sending ip a msg
-        :param ip: the ip to send to and general or user
+        :param ips_to_send: the ip to send to and general or user
         :param data: data to send
         :param encrypt: to encrypt data or not
         :return: None
         """
-        if type(ip).__name__ == 'str' or type(ip).__name__ == 'tuple':
-            sock = self._find_socket_by_ip(ip)
-        else:
-            sock = ip
+        if type(ips_to_send).__name__ != 'list':
+            ips_to_send = [ips_to_send]
 
-        if sock and self.is_running:
+        for ip in ips_to_send:
+            if type(ip).__name__ == 'str' or type(ip).__name__ == 'tuple':
+                sock = self._find_socket_by_ip(ip)
+            else:
+                sock = ip
 
-            print(f'sending to {ip}:', data)
-            if encrypt and sock in self.open_clients:
-                encryption = self.open_clients[sock][1]
-                data = encryption.encrypt(data)
+            if sock and self.is_running:
+                print(f'sending to {ip}:', data)
+                if encrypt and sock in self.open_clients:
+                    encryption = self.open_clients[sock][1]
+                    data = encryption.encrypt(data)
 
-            try:
-                sock.send(str(len(data)).zfill(self.send_len).encode())
-                sock.send(data)
-            except Exception as e:
-                print('server comm - send', str(e))
-                self.disconnect_client(sock)
+                try:
+                    sock.send(str(len(data)).zfill(self.send_len).encode())
+                    sock.send(data)
+                except Exception as e:
+                    print('server comm - send', str(e))
+                    self.disconnect_client(sock)
 
     def send_file(self, ip, path, data):
         """

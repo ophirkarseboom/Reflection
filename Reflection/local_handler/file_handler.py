@@ -8,8 +8,6 @@ from subprocess import Popen
 class FileHandler:
     root = Settings.root
 
-
-
     def __init__(self, username: str):
         self.my_ip = Settings.get_ip()
         self.username = username
@@ -45,25 +43,26 @@ class FileHandler:
         return name, typ
 
     @ staticmethod
-    def build_clone_file(copy_to: str, file_to_copy: str):
+    def build_name_for_file(new_dir_path: str, path_of_file: str, adding: str):
         """
-        building a name to a copy of a file
-        :param copy_to: path of folder to copy to
-        :param file_to_copy: path of file to copy
-        :return: new copied file name
+        building a name to a file to fit to directory
+        :param new_dir_path: path of new folder
+        :param path_of_file: path of a file to build name for
+        :param adding: adding at end of file for new name
+        :return: new name of the file
         """
-        file_folder, file_name = FileHandler.split_path_last_part(file_to_copy)
+        file_folder, file_name = FileHandler.split_path_last_part(path_of_file)
         new_file_name = file_name
-        if file_name in os.listdir(copy_to):
-            if '(copy)' not in file_name:
+        if file_name in os.listdir(new_dir_path):
+            if adding not in file_name:
                 parted_file_name = file_name.split('.')
-                parted_file_name[0] += '(copy)'
+                parted_file_name[0] += adding
                 new_file_name = '.'.join(parted_file_name)
 
             # adding count numbers if copied several times
             count = 1
             while True:
-                if new_file_name in os.listdir(copy_to):
+                if new_file_name in os.listdir(new_dir_path):
                     parted_file_name = new_file_name.split('.')
                     parted_file_name[0] = parted_file_name[0].split('-')[0] + f'-{count}'
                     new_file_name = '.'.join(parted_file_name)
@@ -87,11 +86,21 @@ class FileHandler:
             shutil.copy(from_path, to)
         return worked
 
-    def move(self, old_path: str, new_path: str):
+    @ staticmethod
+    def move(old_path: str, new_path: str):
         """
         moves a file
-        :param old_path:
+        :param old_path: old path of file
+        :param new_path: the new path of the file
+        :return: if success in moving file
         """
+        worked = os.path.isfile(old_path)
+        if worked:
+            shutil.move(old_path, new_path)
+
+        return worked
+
+
 
     @ staticmethod
     def rename(path: str, new_name: str):

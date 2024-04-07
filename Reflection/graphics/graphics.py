@@ -49,7 +49,6 @@ class MyFrame(wx.Frame):
         :param new_panel: panel to switch to
         :return: None
         """
-        self.SetStatusText("")
         current.Hide()
         new_panel.Show()
 
@@ -58,20 +57,30 @@ class MainPanel(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent, pos=wx.DefaultPosition, size=(500, 500))
         self.frame = parent
-        self.SetBackgroundColour(brown)
+        self.SetBackgroundColour(wx.Colour(30, 30, 30))
         self.parent = parent
         sizer = wx.BoxSizer(wx.VERTICAL)
 
-        btnBox = wx.BoxSizer(wx.VERTICAL)
+        main_box = wx.BoxSizer(wx.VERTICAL)
+        logo_image = wx.Image(r"T:\public\cyber\ophir\Reflection\Reflection\graphics\icons\white_logo.png")
+        logo_image.Rescale(200, 50)
+        logo_bitmap = wx.Bitmap(logo_image)
+
+        logo = wx.StaticBitmap(self, bitmap=logo_bitmap)
+        button_box = wx.BoxSizer(wx.HORIZONTAL)
+        main_box.AddSpacer(15)
+        main_box.Add(logo, 0, wx.CENTER | wx.ALL, 5)
+        main_box.AddSpacer(20)
         loginBtn = wx.Button(self, wx.ID_ANY, label="Login", size=(200, 80))
         registerBtn = wx.Button(self, wx.ID_ANY, label="Register", size=(200, 80))
         loginBtn.Bind(wx.EVT_BUTTON, self.handle_login)
         registerBtn.Bind(wx.EVT_BUTTON, self.handle_register)
-        btnBox.Add(loginBtn, 0, wx.ALL, 5)
-        btnBox.Add(registerBtn, 0, wx.ALL, 5)
+        button_box.Add(loginBtn, 0, wx.ALL, 5)
+        button_box.Add(registerBtn, 0, wx.ALL, 5)
+        main_box.Add(button_box, wx.CENTER | wx.TOP, 5)
 
         # add all elements to sizer
-        sizer.Add(btnBox, wx.CENTER | wx.ALL, 5)
+        sizer.Add(main_box, wx.CENTER | wx.ALL, 5)
 
         # arrange the screen
         self.SetSizer(sizer)
@@ -221,9 +230,8 @@ class LoginPanel(wx.Panel):
         username = self.nameField.GetValue()
         password = self.passField.GetValue()
         if not username or not password:
-            self.Parent.SetStatusText("Must enter name and password")
+            notification.show_error('must enter name and password')
         else:
-            self.Parent.SetStatusText("waiting for Server approve")
             self.parent.logic_q.put(('login', f'{username},{password}'))
 
 

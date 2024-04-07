@@ -66,8 +66,8 @@ class TreeFrame(wx.Frame):
         wx.Frame.__init__(self, parent, pos=wx.DefaultPosition, size=(500, 500))
         self.cwd = settings.Settings.pic_path
         self.tree = wx.TreeCtrl(self, style=wx.TR_HIDE_ROOT)
-        self.file_commands = ('open', 'delete', 'rename', 'download')
-        self.folder_commands = ('create file', 'create folder', 'delete', 'rename', 'upload file')
+        self.file_commands = ('open', 'delete', 'rename', 'download', 'copy')
+        self.folder_commands = ('create file', 'create folder', 'delete', 'rename', 'upload file', 'paste')
         self.root = self.tree.AddRoot("root")
         self.command_q = command_q
         self.folders = []
@@ -229,7 +229,7 @@ class TreeFrame(wx.Frame):
                 print('paste')
                 if self.on_clipboard_path:
 
-                    self.command_q.put(('copy', f'{self.on_clipboard_path},{on_item_path}'))
+                    self.command_q.put(('paste', f'{self.on_clipboard_path},{on_item_path}'))
 
     def on_drop(self, evt):
         """
@@ -238,8 +238,9 @@ class TreeFrame(wx.Frame):
         :return: None
         """
         self.SetCursor(wx.Cursor())
-        dropped_on = evt.GetItem()
-        print('dropped_on:', self.tree.GetItemData(dropped_on))
+        dropped_on = self.tree.GetItemData(evt.GetItem())
+        dragged_data = self.tree.GetItemData(self.drag_item)
+        self.command_q.put(('move', f'{dragged_data},{dropped_on}'))
 
     def on_drag(self, evt):
         """
@@ -317,6 +318,7 @@ class TreeFrame(wx.Frame):
         """
         if path in self.path_item:
             self.tree.Delete(self.path_item[path])
+            del self.path_item[path]
 
     def add_object(self, path: str, name: str, typ: str):
         """
@@ -389,6 +391,19 @@ class TreeFrame(wx.Frame):
             file_dialog.Destroy()
             if file_explorer_path_chose:
                 self.command_q.put((text, f'{path},{file_explorer_path_chose}'))
+
+        elif text == 'paste':
+            on_item = self.tree.GetFocusedItem()
+            on_item_path = self.tree.GetItemData(on_item)
+            if self.on_clipboard_path:
+                self.command_q.put((text, f'{self.on_clipboard_path},{on_item_path}'))
+
+
+        elif text == 'copy':
+            on_item = self.tree.GetFocusedItem()
+            on_item_path = self.tree.GetItemData(on_item)
+            self.on_clipboard_path = on_item_path
+
         else:
             self.command_q.put((text, path))
 

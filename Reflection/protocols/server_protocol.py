@@ -118,10 +118,12 @@ def pack_status_delete(status: bool, location: str):
     return f'{packed},{location}'
 
 
-def pack_status_move(status: bool):
+def pack_status_move(status: bool, old_path: str, new_path: str):
     """
     gets a boolean that tells if action worked or not and returns the packed str
     :param status: boolean (success of failure)
+    :param old_path: the old path of the file
+    :param new_path: new path of the file
     :return: packed str
     """
     packed = '13'
@@ -130,7 +132,7 @@ def pack_status_move(status: bool):
     else:
         packed += 'no'
 
-    return packed
+    return f'{packed},{old_path},{new_path}'
 
 
 def pack_status_clone(status: bool, copy_from: str, copy_to: str):

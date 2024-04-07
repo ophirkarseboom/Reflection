@@ -19,7 +19,8 @@ def rcv_comm(comm, q):
     :param comm: client or server comm
     :param q: msg q
     """
-    commands = {'23': handle_delete, '16': handle_open_file, '21': handle_rename, '31': handle_asked_file_tree, '32': handle_create, '34': handle_status_mac, }
+    commands = {'23': handle_delete, '16': handle_open_file, '21': handle_rename, '25': handle_move, '27': handle_clone,
+                '31': handle_asked_file_tree, '32': handle_create, '34': handle_status_mac}
     while True:
         is_server = isinstance(comm, ServerComm)
         if is_server:
@@ -97,16 +98,30 @@ def handle_rename(client: ClientComm, vars: list):
 
 def handle_clone(client: ClientComm, vars: list):
     """
-    renames a file\folder
+    clones a file
     :param client: client comm
-    :param vars: location of object to rename and the new name
+    :param vars: location of object to clone and the new location
     :return: None
     """
     copy_from, copy_to = vars
-    new_file_name = FileHandler.build_clone_file(copy_from, copy_to)
-    status = FileHandler.direct_copy_file(copy_from, copy_to + new_file_name)
-    client.send(client_protocol.pack_status_clone(status, copy_from, copy_to))
+    print('copy_from:', copy_from)
+    print('copy_to:', copy_to)
+    new_file_name = FileHandler.build_name_for_file(copy_to, copy_from, '(copy)')
+    status = FileHandler.direct_copy_file(copy_from, f'{copy_to}\\{new_file_name}')
+    client.send(client_protocol.pack_status_clone(status, copy_from, f'{copy_to}\\{new_file_name}'))
 
+
+def handle_move(client: ClientComm, vars: list):
+    """
+    moves a file
+    :param client: client comm
+    :param vars: location of object to move and the new location
+    :return: None
+    """
+    move_from, move_to = vars
+    new_file_name = FileHandler.build_name_for_file(move_to, move_from, '(moved)')
+    status = FileHandler.direct_copy_file(move_from, f'{move_to}\\{new_file_name}')
+    client.send(client_protocol.pack_status_move(status, move_from, f'{move_to}\\{new_file_name}'))
 
 def handle_delete(client: ClientComm, vars: list):
     """
