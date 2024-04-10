@@ -62,12 +62,12 @@ class MainPanel(wx.Panel):
         sizer = wx.BoxSizer(wx.VERTICAL)
 
         main_box = wx.BoxSizer(wx.VERTICAL)
-        logo_image = wx.Image(r"T:\public\cyber\ophir\Reflection\Reflection\graphics\icons\white_logo.png")
+        logo_image = wx.Image(os.path.join(settings.Settings.pic_path, "white_logo.png"))
         logo_image.Rescale(200, 50)
         logo_bitmap = wx.Bitmap(logo_image)
         logo = wx.StaticBitmap(self, bitmap=logo_bitmap)
 
-        login_image = wx.Image(r"T:\public\cyber\ophir\Reflection\Reflection\graphics\icons\login.png")
+        login_image = wx.Image(os.path.join(settings.Settings.pic_path, "login.png"))
         login_image.Rescale(150, 50)
         login_bitmap = wx.Bitmap(login_image)
         login = wx.StaticBitmap(self, bitmap=login_bitmap)

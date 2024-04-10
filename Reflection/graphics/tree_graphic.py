@@ -79,7 +79,7 @@ class TreeFrame(wx.Frame):
         self.forbidden = ('*', ',', '\\', '/', '[', ']', '{', '}', '?', '<', '>', ' ', ':', '|', '(', ')', '-')
         self.on_clipboard_path = None
 
-        self.font = wx.Font(self.image_size * 0.7, wx.FONTFAMILY_MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
+        self.font = wx.Font(round(self.image_size * 0.7), wx.FONTFAMILY_MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
         self.tree.SetFont(self.font)
         self.tree.SetForegroundColour(wx.Colour(255, 255, 255))
 
