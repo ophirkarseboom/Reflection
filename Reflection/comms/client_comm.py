@@ -171,14 +171,13 @@ class ClientComm:
         #     print('client comm - send', str(e))
         #     sys.exit("server is down, try again later")
 
-    def send_file(self, path, data):
+    def send_file(self, header, data):
         """
         sends file to server
-        :param path: path of the file
+        :param header: header of the file
         :param data: the data of the file (binary)
         :return: None
         """
-        header = user_client_protocl.pack_change_file(path)
         header = self.symmetric.encrypt(header)
         data = self.symmetric.encrypt(data)
         header_len = str(len(header)).zfill(self.send_len).encode()

@@ -257,9 +257,7 @@ def got_move(got_ip: str, vars: str):
     ip_to = FileHandler.extract_ip(user_got, move_to)
     if ip_from == ip_to:
         ip_to_send = (ip_from, 'G')
-        path_from = FileHandler.remove_ip(user_got, move_from)
-        path_to = FileHandler.remove_ip(user_got, move_to)
-        server_comm.send(ip_to_send, protocol.pack_do_move(path_from, path_to))
+        server_comm.send(ip_to_send, protocol.pack_do_move(move_from, move_to))
 
 
 

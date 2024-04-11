@@ -266,15 +266,15 @@ class ServerComm:
                     print('server comm - send', str(e))
                     self.disconnect_client(sock)
 
-    def send_file(self, ip, path, data):
+    def send_file(self, ip, header, data):
         """
         sends file to client
         :param ip: ip of client
-        :param path: path of the file
+        :param header: header of the file
         :param data: data of the file (binary)
         :return: None
         """
-        header = general_client_protocol.pack_status_open_file(True, path)
+
         client = self._find_socket_by_ip(ip)
         if client:
             symmetric = self.open_clients[client][1]

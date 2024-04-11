@@ -112,7 +112,8 @@ class MainUserClient:
                 self.ip_comm[ip_to_send] = comm
                 threading.Thread(target=self.rcv_comm, args=(rcv_q,), daemon=True).start()
 
-            comm.send_file(to_path, file_data)
+            header = protocol.pack_change_file(to_path)
+            comm.send_file(header, file_data)
 
     def visualize_open_file(self, file_path):
         """

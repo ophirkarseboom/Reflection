@@ -398,7 +398,6 @@ class TreeFrame(wx.Frame):
             if self.on_clipboard_path:
                 self.command_q.put((text, f'{self.on_clipboard_path},{on_item_path}'))
 
-
         elif text == 'copy':
             on_item = self.tree.GetFocusedItem()
             on_item_path = self.tree.GetItemData(on_item)

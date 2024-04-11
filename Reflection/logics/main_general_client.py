@@ -13,6 +13,7 @@ from Reflection.comms.server_comm import ServerComm
 
 
 
+
 def rcv_comm(comm, q):
     """
     gets data from server or clients and calls functions accordingly
@@ -65,10 +66,8 @@ def handle_open_file(got_ip: str, server: ServerComm, vars: list):
             file = f.read()
 
         print('path:', path)
-        server.send_file(got_ip, path, file)
-
-        # server.send(got_ip, client_protocol.pack_status_open_file(True, path))
-        # server.send(got_ip, file)
+        header = client_protocol.pack_status_open_file(True, path)
+        server.send_file(got_ip, header, file)
 
     else:
         server.send(got_ip, client_protocol.pack_status_open_file(False))
@@ -119,9 +118,23 @@ def handle_move(client: ClientComm, vars: list):
     :return: None
     """
     move_from, move_to = vars
-    new_file_name = FileHandler.build_name_for_file(move_to, move_from, '(moved)')
-    status = FileHandler.direct_copy_file(move_from, f'{move_to}\\{new_file_name}')
-    client.send(client_protocol.pack_status_move(status, move_from, f'{move_to}\\{new_file_name}'))
+    username = FileHandler.get_user(move_from)
+
+    move_to_ip = FileHandler.extract_ip(username, move_to)
+    my_ip = FileHandler.extract_ip(username, move_from)
+    if my_ip == move_to_ip:
+        move_from = FileHandler.remove_ip(username, move_from)
+        move_to = FileHandler.remove_ip(username, move_to)
+
+        new_file_name = FileHandler.build_name_for_file(move_to, move_from, '(moved)')
+        new_file_path = str(os.path.join(move_to, new_file_name))
+
+        status = FileHandler.direct_copy_file(move_from, new_file_path)
+        client.send(client_protocol.pack_status_move(status, move_from, new_file_path))
+
+    else:
+        pass
+
 
 def handle_delete(client: ClientComm, vars: list):
     """

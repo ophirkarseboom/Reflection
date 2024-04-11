@@ -4,7 +4,7 @@ import socket
 import os
 
 class Settings:
-    server_ip = '10.100.102.38'
+    server_ip = '10.100.102.28'
     server_port = 2000
     root = 'C:\\reflection\\'
     pear_port = 2500
