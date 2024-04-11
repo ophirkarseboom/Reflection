@@ -57,7 +57,6 @@ def handle_open_file(got_ip: str, server: ServerComm, vars: list):
         print('error in opening file')
         return
 
-    print('ok great')
     path = vars[0]
     user = FileHandler.get_user(path)
     local_path = FileHandler.remove_ip(user, path)
@@ -65,7 +64,7 @@ def handle_open_file(got_ip: str, server: ServerComm, vars: list):
         with open(local_path, 'rb') as f:
             file = f.read()
 
-        print('path:', path)
+        print('path of file to open:', path)
         header = client_protocol.pack_status_open_file(True, path)
         server.send_file(got_ip, header, file)
 
@@ -129,7 +128,7 @@ def handle_move(client: ClientComm, vars: list):
         new_file_name = FileHandler.build_name_for_file(move_to, move_from, '(moved)')
         new_file_path = str(os.path.join(move_to, new_file_name))
 
-        status = FileHandler.direct_copy_file(move_from, new_file_path)
+        status = FileHandler.move(move_from, new_file_path)
         client.send(client_protocol.pack_status_move(status, move_from, new_file_path))
 
     else:

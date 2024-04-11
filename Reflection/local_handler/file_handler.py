@@ -97,7 +97,6 @@ class FileHandler:
         worked = os.path.isfile(old_path)
         if worked:
             shutil.move(old_path, new_path)
-
         return worked
 
 
