@@ -13,3 +13,4 @@ def show_notification(notification: str):
     :param notification: the error explanation
     """
     wx.MessageBox(notification, "Notification", wx.OK | wx.ICON_ASTERISK)
+

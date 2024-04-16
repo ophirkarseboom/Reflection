@@ -1,4 +1,5 @@
 import base64
+import os.path
 import queue
 import socket
 import threading
@@ -115,9 +116,9 @@ class ServerComm:
                         print('error in receiving file:', str(e))
                         file_is_ok = False
 
+            status = 'ok'
             if file_is_ok:
                 file = bytes(file)
-                print(file)
                 file = self.open_clients[client][1].decrypt(file, True)
                 path = header[2:]
                 ip = '\\' + self.my_ip
@@ -126,11 +127,17 @@ class ServerComm:
 
                     path = path.replace(ip, '')
                     # creating file
-                    with open(path, 'wb') as save:
-                        save.write(file)
-
+                    try:
+                        with open(path, 'wb') as save:
+                            save.write(file)
+                    except Exception:
+                        status = 'no'
             else:
-                print('file is not ok')
+                status = 'no'
+
+            opcode = header[:2]
+            client_ip = self.open_clients[client][0]
+            self.rcv_q.put((client_ip, f'{opcode}{status}'))
         if client in self.receiving_files:
             self.receiving_files.remove(client)
 

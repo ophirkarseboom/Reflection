@@ -1,37 +1,73 @@
 import wx
+import threading
+import time
 
 
-class LoginFrame(wx.Frame):
-    def __init__(self, parent, title):
-        super(LoginFrame, self).__init__(parent, title=title, size=(300, 200))
+class LoadingPopup(wx.Dialog):
+    def __init__(self, parent, message):
+        super(LoadingPopup, self).__init__(parent, title="Loading", size=(200, 150),
+                                           style=wx.DEFAULT_DIALOG_STYLE & ~(wx.RESIZE_BORDER | wx.MAXIMIZE_BOX))
+        self.panel = wx.Panel(self)
+        self.message_label = wx.StaticText(self.panel, label=message, style=wx.ALIGN_CENTER)
+        self.dots_label = wx.StaticText(self.panel, label="...", style=wx.ALIGN_CENTER)
 
-        panel = wx.Panel(self)
-
-        # Define the title label
-        title_font = wx.Font(24, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD)
-        title_text = wx.StaticText(panel, label="Login")
-        title_text.SetFont(title_font)
-        title_text.SetForegroundColour(wx.Colour(255, 255, 255))  # Custom text color
-        title_text.SetBackgroundColour(wx.Colour(30, 30, 30))  # Custom background color
-
-        # Add a subtle shadow effect
-        title_shadow = wx.StaticText(panel, label="Login")
-        title_shadow.SetFont(title_font)
-        title_shadow.SetForegroundColour(wx.Colour(100, 100, 100))  # Shadow color
-        title_shadow.SetPosition((title_text.GetPosition()[0] + 2, title_text.GetPosition()[1] + 2))
-
-        # Layout
         sizer = wx.BoxSizer(wx.VERTICAL)
-        sizer.AddStretchSpacer()
-        sizer.Add(title_shadow, 0, wx.CENTER | wx.BOTTOM, border=5)
-        sizer.Add(title_text, 0, wx.CENTER | wx.BOTTOM, border=5)
-        panel.SetSizer(sizer)
+        sizer.Add(self.message_label, 0, wx.ALL | wx.EXPAND, 5)
 
-        self.Centre()
-        self.Show()
+        # Horizontal sizer for message and dots labels
+        hbox = wx.BoxSizer(wx.HORIZONTAL)
+        hbox.Add(self.message_label, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 5)
+        hbox.Add(self.dots_label, 0, wx.ALIGN_CENTER_VERTICAL)
+        sizer.Add(hbox, 0, wx.ALIGN_CENTER_HORIZONTAL)
+
+        self.panel.SetSizer(sizer)
+        self.Center()
+
+        # Change cursor to a wait cursor
+        wait_cursor = wx.Cursor(wx.CURSOR_WAIT)
+        self.SetCursor(wait_cursor)
+
+        # Start the animation timer
+        self.animation_timer = wx.Timer(self)
+        self.Bind(wx.EVT_TIMER, self.update_dots, self.animation_timer)
+        self.animation_timer.Start(500)  # Adjust timing here (milliseconds)
+
+        # Set the timer for automatic cancellation
+        self.cancel_timer = wx.Timer(self)
+        self.Bind(wx.EVT_TIMER, self.cancel_loading, self.cancel_timer)
+        self.cancel_timer.Start(3000)  # 3 seconds
+
+        # Initial dot count
+        self.dot_count = 3
+
+    def update_dots(self, event):
+        if self.dot_count < 3:
+            self.dots_label.SetLabel("." * self.dot_count)
+            self.dot_count += 1
+        else:
+            self.dots_label.SetLabel("...")
+            self.dot_count = 0
+
+    def cancel_loading(self, event):
+        self.Close()
 
 
-if __name__ == '__main__':
-    app = wx.App()
-    LoginFrame(None, title='Login')
-    app.MainLoop()
+def create_loading_popup(parent, message):
+    popup = LoadingPopup(parent, message)
+    popup.ShowModal()
+    return popup
+
+
+def do_long_task():
+    # Simulate a long task
+    for i in range(10):
+        print("Task running...")
+        time.sleep(1)
+
+
+app = wx.App()
+frame = wx.Frame(None)
+
+loading_popup = create_loading_popup(frame, "Loading Task")
+
+app.MainLoop()

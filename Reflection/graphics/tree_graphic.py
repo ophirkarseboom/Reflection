@@ -18,6 +18,7 @@ class CreateFileDialog(wx.Dialog):
         self.panel = wx.Panel(self)
         vbox = wx.BoxSizer(wx.VERTICAL)
 
+
         text_box = wx.BoxSizer(wx.HORIZONTAL)
         lbl = wx.StaticText(self.panel, label="Enter Name:")
         text_box.Add(lbl, flag=wx.RIGHT, border=8)
@@ -78,6 +79,7 @@ class TreeFrame(wx.Frame):
         self.path_item = {}
         self.forbidden = ('*', ',', '\\', '/', '[', ']', '{', '}', '?', '<', '>', ' ', ':', '|', '(', ')', '-')
         self.on_clipboard_path = None
+        self.loading_cursor = wx.Cursor(wx.CURSOR_WAIT)
 
         self.font = wx.Font(round(self.image_size * 0.7), wx.FONTFAMILY_MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
         self.tree.SetFont(self.font)
@@ -457,6 +459,8 @@ class TreeFrame(wx.Frame):
         # open file
         else:
             self.command_q.put(('open', path))
+
+
 
 
 

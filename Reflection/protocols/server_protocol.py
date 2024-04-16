@@ -12,12 +12,9 @@ def unpack(data: str):
 
         # if got file tree
         if opcode == '20':
-
-
             parsed = [data]
         else:
             parsed = data.split(',')
-
 
         return opcode, parsed
 
