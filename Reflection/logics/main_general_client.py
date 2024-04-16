@@ -21,7 +21,7 @@ def rcv_comm(comm, q):
     :param q: msg q
     """
     commands = {'23': handle_delete, '16': handle_open_file, '21': handle_rename, '25': handle_move, '27': handle_clone,
-                '18': handle_got_file, '31': handle_asked_file_tree, '32': handle_create, '34': handle_status_mac}
+                '18': handle_changed_file, '31': handle_asked_file_tree, '32': handle_create, '34': handle_status_mac}
     while True:
         is_server = isinstance(comm, ServerComm)
         if is_server:
@@ -45,18 +45,19 @@ def rcv_comm(comm, q):
         else:
             commands[opcode](comm, params)
 
-def handle_got_file(got_ip: str, server: ServerComm, vars: list):
+def handle_changed_file(got_ip: str, server: ServerComm, vars: list):
     """
     sending status if worked or not to client
     :param server: server comm
     :param vars: status
     :return: None
     """
-    if len(vars) != 1:
+    if len(vars) != 2:
         print('error while saving file')
         return
     status = (vars[0] == 'ok')
-    print('status handle got file:', status)
+    path = vars[1]
+    client_protocol.pack_status_change_file(status, path)
 
 def handle_open_file(got_ip: str, server: ServerComm, vars: list):
     """

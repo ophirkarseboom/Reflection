@@ -449,7 +449,8 @@ class MainUserClient:
 
         commands = {'02': self.handle_status_register, '04': self.handle_status_login, '05': self.handle_got_file_tree,
                     '09': self.handle_status_rename, '07': self.handle_status_create, '13': self.handle_status_move,
-                    '15': self.handle_status_clone, '17': self.handle_status_open, '11': self.handle_status_delete}
+                    '15': self.handle_status_clone, '17': self.handle_status_open, '11': self.handle_status_delete,
+                    '19': self.handle_status_saved_file}
         while True:
             data = protocol.unpack(q.get())
             if not data:
@@ -485,6 +486,21 @@ class MainUserClient:
             new_folders.update(folders_got)
             new_folders[user_path].insert(0, ip)
             wx.CallAfter(pub.sendMessage, "update_tree", dic=new_folders)
+
+
+    def handle_status_saved_file(self, vars: list):
+        """
+        calling error if was a problem saving file
+        :param vars: status and path
+        :return: None
+        """
+        status = (vars[0] == 'ok')
+        if len(vars) != 2:
+            self.call_error(f"couldn't save file, problem communicating with other pc")
+            return
+        path = vars[1]
+        if not status:
+            self.call_error(f"couldn't save file: {path}")
 
     def handle_status_open(self, vars: list):
         """

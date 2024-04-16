@@ -144,10 +144,11 @@ def pack_status_open_file(status: bool, path=''):
     return packed
 
 
-def pack_status_change_file(status: bool):
+def pack_status_change_file(status: bool, path: str):
     """
     gets a boolean that tells if action worked or not and returns the packed str
     :param status: boolean (success of failure)
+    :param path: path of the file changed
     :return: packed str
     """
     packed = '19'
@@ -156,7 +157,7 @@ def pack_status_change_file(status: bool):
     else:
         packed += 'no'
 
-    return packed
+    return f'{packed},{path}'
 
 
 def pack_key(key):

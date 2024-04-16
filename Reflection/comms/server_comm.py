@@ -10,6 +10,7 @@ from Reflection.encryption import symmetrical_encryption
 from Reflection.protocols import general_client_protocol
 from Reflection.protocols import server_protocol
 from Reflection.settings import Settings
+from Reflection.local_handler.file_handler import FileHandler
 
 
 class ServerComm:
@@ -117,27 +118,26 @@ class ServerComm:
                         file_is_ok = False
 
             status = 'ok'
+            opcode, header = general_client_protocol.unpack(header)
+            path = header[0]
             if file_is_ok:
                 file = bytes(file)
                 file = self.open_clients[client][1].decrypt(file, True)
-                path = header[2:]
-                ip = '\\' + self.my_ip
                 print(f'saving in {path}: {file}')
-                if ip in path:
-
-                    path = path.replace(ip, '')
+                username = FileHandler.get_user(path)
+                local_path = FileHandler.remove_ip(username, path)
+                try:
                     # creating file
-                    try:
-                        with open(path, 'wb') as save:
-                            save.write(file)
-                    except Exception:
-                        status = 'no'
+                    with open(local_path, 'wb') as save:
+                        save.write(file)
+                except Exception:
+                    status = 'no'
             else:
                 status = 'no'
 
-            opcode = header[:2]
             client_ip = self.open_clients[client][0]
-            self.rcv_q.put((client_ip, f'{opcode}{status}'))
+            header = ','.join(header)
+            self.rcv_q.put((client_ip, f'{opcode}{status},{header}'))
         if client in self.receiving_files:
             self.receiving_files.remove(client)
 
