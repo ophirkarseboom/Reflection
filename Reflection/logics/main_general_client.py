@@ -21,7 +21,7 @@ def rcv_comm(comm, q):
     :param q: msg q
     """
     commands = {'23': handle_delete, '16': handle_open_file, '21': handle_rename, '25': handle_move, '27': handle_clone,
-                '19': handle_got_file, '31': handle_asked_file_tree, '32': handle_create, '34': handle_status_mac}
+                '18': handle_got_file, '31': handle_asked_file_tree, '32': handle_create, '34': handle_status_mac}
     while True:
         is_server = isinstance(comm, ServerComm)
         if is_server:
