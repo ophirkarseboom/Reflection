@@ -43,17 +43,18 @@ class FileHandler:
         return name, typ
 
     @ staticmethod
-    def build_name_for_file(new_dir_path: str, path_of_file: str, adding: str):
+    def build_name_for_file(file_tree: dict, new_dir_path: str, path_of_file: str, adding: str):
         """
         building a name to a file to fit to directory
+        :param file_tree: the file tree using
         :param new_dir_path: path of new folder
         :param path_of_file: path of a file to build name for
         :param adding: adding at end of file for new name
         :return: new name of the file
         """
-        file_folder, file_name = FileHandler.split_path_last_part(path_of_file)
+        _, file_name = FileHandler.split_path_last_part(path_of_file)
         new_file_name = file_name
-        if file_name in os.listdir(new_dir_path):
+        if file_name in file_tree[new_dir_path]:
             if adding not in file_name:
                 parted_file_name = file_name.split('.')
                 parted_file_name[0] += adding
@@ -62,7 +63,7 @@ class FileHandler:
             # adding count numbers if copied several times
             count = 1
             while True:
-                if new_file_name in os.listdir(new_dir_path):
+                if new_file_name in file_tree[new_dir_path]:
                     parted_file_name = new_file_name.split('.')
                     parted_file_name[0] = parted_file_name[0].split('-')[0] + f'-{count}'
                     new_file_name = '.'.join(parted_file_name)

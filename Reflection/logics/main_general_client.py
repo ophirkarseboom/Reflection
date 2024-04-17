@@ -135,14 +135,11 @@ def handle_move(client: ClientComm, vars: list):
     move_to_ip = FileHandler.extract_ip(username, move_to)
     my_ip = FileHandler.extract_ip(username, move_from)
     if my_ip == move_to_ip:
-        move_from = FileHandler.remove_ip(username, move_from)
-        move_to = FileHandler.remove_ip(username, move_to)
+        local_move_from = FileHandler.remove_ip(username, move_from)
+        local_move_to = FileHandler.remove_ip(username, move_to)
 
-        new_file_name = FileHandler.build_name_for_file(move_to, move_from, '(moved)')
-        new_file_path = str(os.path.join(move_to, new_file_name))
-
-        status = FileHandler.move(move_from, new_file_path)
-        client.send(client_protocol.pack_status_move(status, move_from, new_file_path))
+        status = FileHandler.move(local_move_from, local_move_to)
+        client.send(client_protocol.pack_status_move(status, move_from, move_to))
 
     else:
         pass

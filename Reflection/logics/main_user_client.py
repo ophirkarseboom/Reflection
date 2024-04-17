@@ -231,13 +231,13 @@ class MainUserClient:
                     self.call_error('problem with uploading file')
                     continue
                 file_to_move, move_to = param_got.split(',')
-                self.move(file_to_move, move_to)
+                self.move_file(file_to_move, move_to)
 
             else:
                 print('wrong output')
 
 
-    def move(self, file_to_move: str, move_to: str):
+    def move_file(self, file_to_move: str, move_to: str):
         """
         moves file from one folder to another
         :param file_to_move: full path of the file to move
@@ -255,18 +255,18 @@ class MainUserClient:
         print('file_to_move:', file_to_move)
 
         file_dir_path, file_name = FileHandler.split_path_last_part(file_to_move)
-
+        file_name = FileHandler.build_name_for_file(self.folders, move_to, file_to_move, '(moved)')
+        new_file_path = str(os.path.join(move_to, file_name))
         # if moving to same dir
         if move_to == file_dir_path:
             return
 
         if self.file_handler.is_local(move_to) and self.file_handler.is_local(file_to_move):
             # making folders local
-            local_move_to = FileHandler.remove_ip(self.user_name, move_to)
+            local_new_file_path = FileHandler.remove_ip(self.user_name, new_file_path)
             local_file_to_move = FileHandler.remove_ip(self.user_name, file_to_move)
 
-            file_name = FileHandler.build_name_for_file(local_move_to, local_file_to_move, '(moved)')
-            moved = FileHandler.move(local_file_to_move, f'{local_move_to}\\{file_name}')
+            moved = FileHandler.move(local_file_to_move, local_new_file_path)
             if moved:
                 print('removing:', file_to_move)
                 self.folders_remove(file_to_move)
@@ -278,11 +278,8 @@ class MainUserClient:
             else:
                 self.call_error(f'could not move {file_name}')
 
-        elif ip_from == ip_to:
-            self.client.send(protocol.pack_do_move(file_to_move, move_to))
-
         else:
-            self.call_error('cannot move from 2 different computers')
+            self.client.send(protocol.pack_do_move(file_to_move, new_file_path))
 
 
     def clone(self, file_to_copy: str, copy_to: str):

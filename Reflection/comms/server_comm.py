@@ -16,7 +16,7 @@ from Reflection.local_handler.file_handler import FileHandler
 class ServerComm:
 
     main_server_port = Settings.server_port
-    file_receive_opcodes = ('17', '18')
+    file_receive_opcodes = ('17', '18', '36', '38')
     def __init__(self, port, rcv_q, send_len):
 
         self.port = port

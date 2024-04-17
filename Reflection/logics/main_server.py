@@ -254,13 +254,8 @@ def got_move(got_ip: str, vars: str):
     move_from, move_to = vars
     user_got = get_key_by_value(username_ips, got_ip)
     ip_from = FileHandler.extract_ip(user_got, move_from)
-    ip_to = FileHandler.extract_ip(user_got, move_to)
-    if ip_from == ip_to:
-        ip_to_send = (ip_from, 'G')
-        server_comm.send(ip_to_send, protocol.pack_do_move(move_from, move_to))
-
-
-
+    ip_to_send = (ip_from, 'G')
+    server_comm.send(ip_to_send, protocol.pack_do_move(move_from, move_to))
 
 def got_clone(got_ip: str, vars: str):
     """
@@ -319,13 +314,11 @@ def handle_status_move(got_ip: str, vars: str):
         return
 
     status, move_from, move_to = vars
-    print('status:', status)
-    username = move_from.replace(FileHandler.root, '')
+
+    username = move_from.replace(FileHandler.root, '', 1)
     username = username[:username.index('\\')]
 
     ip_to_send = username_ips[username]
-    move_from = FileHandler.insert_ip(move_from, username, got_ip[0])
-    move_to = FileHandler.insert_ip(move_to, username, got_ip[0])
     status = status == 'ok'
     server_comm.send(ip_to_send, protocol.pack_status_move(status, move_from, move_to))
 
