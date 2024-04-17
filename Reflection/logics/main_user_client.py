@@ -304,7 +304,7 @@ class MainUserClient:
 
             file_folder, file_name = FileHandler.split_path_last_part(local_file_to_copy)
 
-            new_file_name = FileHandler.build_name_for_file(local_copy_to, local_file_to_copy, '(copy)')
+            new_file_name = FileHandler.build_name_for_file(self.folders, local_copy_to, local_file_to_copy, '(copy)')
             print('new_file_name:', new_file_name)
             print('local_copy_to:', local_copy_to)
 

@@ -110,6 +110,7 @@ def pack_status_move(status: bool, old_path: str, new_path: str):
 
     return f'{packed},{old_path},{new_path}'
 
+def pack_do_move()
 
 def pack_status_clone(status: bool, copy_from: str, copy_to: str):
     """

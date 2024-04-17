@@ -315,8 +315,7 @@ def handle_status_move(got_ip: str, vars: str):
 
     status, move_from, move_to = vars
 
-    username = move_from.replace(FileHandler.root, '', 1)
-    username = username[:username.index('\\')]
+    username = FileHandler.get_user(move_from)
 
     ip_to_send = username_ips[username]
     status = status == 'ok'
@@ -336,8 +335,9 @@ def handle_status_clone(got_ip: str, vars: str):
 
     status, copy_from, copy_to = vars
     print('status:', status)
-    username = copy_from.replace(FileHandler.root, '')
-    username = username[:username.index('\\')]
+    # username = copy_from.replace(FileHandler.root, '')
+    # username = username[:username.index('\\')]
+    username = FileHandler.get_user(copy_from)
 
     ip_to_send = username_ips[username]
     copy_from = FileHandler.insert_ip(copy_from, username, got_ip[0])

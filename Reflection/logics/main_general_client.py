@@ -9,6 +9,7 @@ from Reflection.protocols import server_protocol
 import os
 from Reflection.local_handler.file_handler import FileHandler
 from Reflection.comms.server_comm import ServerComm
+from queue import Queue
 
 
 
@@ -20,7 +21,7 @@ def rcv_comm(comm, q):
     :param comm: client or server comm
     :param q: msg q
     """
-    commands = {'23': handle_delete, '16': handle_open_file, '21': handle_rename, '25': handle_move, '27': handle_clone,
+    commands = {'23': handle_delete, '16': handle_open_file, '21': handle_rename, '25': handle_do_move, '27': handle_clone,
                 '18': handle_changed_file, '31': handle_asked_file_tree, '32': handle_create, '34': handle_status_mac}
     while True:
         is_server = isinstance(comm, ServerComm)
@@ -40,6 +41,11 @@ def rcv_comm(comm, q):
         print('data got:', data)
 
         opcode, params = data
+
+        # ending thread listening
+        if opcode == '00':
+            return
+
         if is_server:
             commands[opcode](ip, comm, params)
         else:
@@ -122,7 +128,7 @@ def handle_clone(client: ClientComm, vars: list):
     client.send(client_protocol.pack_status_clone(status, copy_from, f'{copy_to}\\{new_file_name}'))
 
 
-def handle_move(client: ClientComm, vars: list):
+def handle_do_move(client: ClientComm, vars: list):
     """
     moves a file
     :param client: client comm
@@ -134,6 +140,8 @@ def handle_move(client: ClientComm, vars: list):
 
     move_to_ip = FileHandler.extract_ip(username, move_to)
     my_ip = FileHandler.extract_ip(username, move_from)
+
+    # locally moving file
     if my_ip == move_to_ip:
         local_move_from = FileHandler.remove_ip(username, move_from)
         local_move_to = FileHandler.remove_ip(username, move_to)
@@ -141,8 +149,14 @@ def handle_move(client: ClientComm, vars: list):
         status = FileHandler.move(local_move_from, local_move_to)
         client.send(client_protocol.pack_status_move(status, move_from, move_to))
 
+    # sending file to other computer
     else:
-        pass
+        rcv_q = Queue()
+
+        comm = ClientComm(move_to_ip, Settings.pear_port, rcv_q, 8)
+        # self.ip_comm[ip_to_connect] = comm
+        threading.Thread(target=rcv_comm, args=(rcv_q,), daemon=True).start()
+        comm.send()
 
 
 def handle_delete(client: ClientComm, vars: list):

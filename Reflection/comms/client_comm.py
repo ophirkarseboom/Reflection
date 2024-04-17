@@ -164,12 +164,12 @@ class ClientComm:
         if self.symmetric:
             data = self.symmetric.encrypt(data)
 
-        # try:
-        print(f'data to send: {str(len(data)).zfill(self.send_len).encode() + data}')
-        self.server.send(str(len(data)).zfill(self.send_len).encode() + data)
-        # except Exception as e:
-        #     print('client comm - send', str(e))
-        #     sys.exit("server is down, try again later")
+        try:
+            print(f'data to send: {str(len(data)).zfill(self.send_len).encode() + data}')
+            self.server.send(str(len(data)).zfill(self.send_len).encode() + data)
+        except Exception as e:
+            print('client comm - send', str(e))
+            sys.exit("server is down, try again later")
 
     def send_file(self, header, data):
         """
