@@ -1,10 +1,21 @@
+import time
 from functools import partial
-
-def nice(a, b, c):
-    print(a, b, c)
-
+import threading
+def a1(val):
+    # threading.Thread(target=a2, daemon=False).start()
+    global nice
+    while True:
+        print(nice)
+def a2():
+    while True:
+        print('hi')
 
 if __name__ == '__main__':
-    new_func1 = partial(nice, 1, 2)
-    new_func2 = partial(nice, 1, 2, 3)
+    nice = True
+    threading.Thread(target=a1, args=(nice,), daemon=True).start()
+    time.sleep(2)
+    nice = False
+    time.sleep(1)
+
+
 

@@ -26,7 +26,8 @@ class MainUserClient:
         self.ip_comm = {}
         self.graphic_q = Queue()
         self.downloads = {}  # {local path, path on gui}
-
+        self.a = threading.Thread(target=self.trys)
+        self.a.start()
         threading.Thread(target=self.rcv_comm, args=(self.client,), daemon=True).start()
         threading.Thread(target=self.rcv_graphic, args=(self.graphic_q,), daemon=True).start()
         app = wx.App(False)
@@ -34,10 +35,14 @@ class MainUserClient:
         self.frame.Show()
         app.MainLoop()
 
-    def monitor_file(self, file_path: str):
+    def trys(self):
+        pass
+
+    def monitor_file(self, file_path: str, end_q: Queue):
         """
         monitors a file and sends server what changed in file
         :param file_path: path for file to monitor
+        :param end_q: queue to kill monitoring
         :return: None
         """
         modified = 0x00000003
@@ -62,6 +67,9 @@ class MainUserClient:
         else:
             # changed = False
             while True:
+                if not end_q.empty():
+                    break
+                print('nice123')
                 try:
                     result = win32file.ReadDirectoryChangesW(
                         directory_handle,
@@ -119,10 +127,13 @@ class MainUserClient:
         """
         opening file to user and activates monitoring on file
         :param file_path: path of file
+        :param comm: the client_comm opened with othe pc
         :return: None
         """
         # start monitoring file
-        threading.Thread(target=self.monitor_file, args=(file_path,), daemon=True).start()
+        q = Queue()
+        self.a = threading.Thread(target=self.monitor_file, args=(file_path, q), daemon=True)
+        self.a.start()
 
         process_name = process_handler.get_process_name(file_path)
         ls1 = process_handler.get_all_pid(process_name)
@@ -139,9 +150,15 @@ class MainUserClient:
         pid = list(new_pid)[0]
 
         process_handler.wait_for_process_to_close(pid)
-        FileHandler.delete(file_path)
-        ClientComm.close()
 
+        # closing all related connections to pc
+        ip = next(filter(lambda item: item[1] == comm, self.ip_comm.items()), None)[0]
+        del self.ip_comm[ip]
+        comm.close()
+
+        # generic action on file to end thread of monitoring file
+        q.put('end')
+        FileHandler.delete(file_path)
 
         print('ended visualize file')
 
@@ -456,11 +473,12 @@ class MainUserClient:
             if not data:
                 print('got None from protocol')
                 continue
-            if data == '00':
-                return
+
             print('data from server:', data)
             opcode, params = data
-
+            if opcode == '00':
+                print('quit')
+                break
             commands[opcode](params)
 
     def get_file_tree(self):
@@ -524,7 +542,6 @@ class MainUserClient:
                 del self.downloads[local_path]
 
             elif os.path.isfile(path):
-
                 threading.Thread(target=self.visualize_open_file, args=(path, comm), daemon=True).start()
             else:
                 print('error in opening file')
@@ -537,6 +554,7 @@ class MainUserClient:
         :param path: path of file
         return:
         """
+        print('is_alive:', self.a.isAlive())
         print('threading', len(threading.enumerate()))
         # file is local so opens it immediately
         if self.file_handler.is_local(path):
@@ -711,7 +729,6 @@ class MainUserClient:
         """
         to_send = protocol.pack_sign_in(self.user_name, password, get_mac_address())
         self.client.send(to_send)
-
 
 def get_mac_address():
     """ returns  mac address"""

@@ -136,4 +136,4 @@ def pack_change_file(location: str):
 
 
 if __name__ == '__main__':
-    pass
+    print(unpack('00'))

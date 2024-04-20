@@ -51,9 +51,11 @@ class ClientComm:
             try:
                 length = int(self.server.recv(self.send_len).decode())
                 data = self.server.recv(length)
+            except socket.timeout as e:
+                continue
             except Exception as e:
-                sys.exit("server is down, try again later")
-
+                print(e)
+                sys.exit('server is no good')
             else:
                 data = self.symmetric.decrypt(data)
                 if data[:2] in self.file_receive_opcodes:
@@ -68,7 +70,6 @@ class ClientComm:
         :param header: header of file
         :return: None
         """
-        print('header:', header)
         if header[2:] == 'no':
             self.rcv_q.put(header)
             return
@@ -103,12 +104,10 @@ class ClientComm:
                 file = bytes(file)
                 file = self.symmetric.decrypt(file, True)
 
-                print('header:', header)
                 path = header.split(',')[1]
                 path, name = FileHandler.split_path_last_part(path)
                 if FileHandler.root in path:
                     path = path.replace(FileHandler.root, Settings.local_changes_path, 1)
-                    print('path:', path)
                     # creating folder for file
                     FileHandler.create(path, 'fld')
 
@@ -165,12 +164,12 @@ class ClientComm:
         if self.symmetric:
             data = self.symmetric.encrypt(data)
 
-        try:
-            print(f'data to send: {str(len(data)).zfill(self.send_len).encode() + data}')
-            self.server.send(str(len(data)).zfill(self.send_len).encode() + data)
-        except Exception as e:
-            print('client comm - send', str(e))
-            sys.exit("server is down, try again later")
+        # try:
+        print(f'data to send: {str(len(data)).zfill(self.send_len).encode() + data}')
+        self.server.send(str(len(data)).zfill(self.send_len).encode() + data)
+        # except Exception as e:
+        #     print('client comm - send:', str(e))
+        #     sys.exit("server is down, try again later")
 
     def send_file(self, header, data):
         """
@@ -190,6 +189,7 @@ class ClientComm:
             sys.exit("server is down, try again later")
 
     def close(self):
+        self.server.send(''.encode())
         self.rcv_q.put('00')
         self.running = False
 
