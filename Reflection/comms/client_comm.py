@@ -27,8 +27,9 @@ class ClientComm:
         self.port = port
         self.rcv_q = rcv_q
         self.client_type = client_type
-
         self.server = socket.socket()
+        self.running = True
+        self.server.settimeout(10)
 
         self.symmetric = None
 
@@ -46,7 +47,7 @@ class ClientComm:
             sys.exit("server is down, try again later")
 
         self._key_exchange()
-        while True:
+        while self.running:
             try:
                 length = int(self.server.recv(self.send_len).decode())
                 data = self.server.recv(length)
@@ -188,7 +189,9 @@ class ClientComm:
             print('client comm - send file', str(e))
             sys.exit("server is down, try again later")
 
-
+    def close(self):
+        self.rcv_q.put('00')
+        self.running = False
 
 if __name__ == '__main__':
     rcv_q = queue.Queue()

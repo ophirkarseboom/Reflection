@@ -12,7 +12,7 @@ import wx
 from pubsub import pub
 from Reflection.graphics.graphics import MyFrame
 import win32file
-
+from functools import partial
 
 class MainUserClient:
 
@@ -27,7 +27,7 @@ class MainUserClient:
         self.graphic_q = Queue()
         self.downloads = {}  # {local path, path on gui}
 
-        threading.Thread(target=self.rcv_comm, args=(self.server_rcv_q,), daemon=True).start()
+        threading.Thread(target=self.rcv_comm, args=(self.client,), daemon=True).start()
         threading.Thread(target=self.rcv_graphic, args=(self.graphic_q,), daemon=True).start()
         app = wx.App(False)
         self.frame = MyFrame(self.graphic_q)
@@ -110,12 +110,12 @@ class MainUserClient:
                 rcv_q = Queue()
                 comm = ClientComm(ip_to_send, Settings.pear_port, rcv_q, 8)
                 self.ip_comm[ip_to_send] = comm
-                threading.Thread(target=self.rcv_comm, args=(rcv_q,), daemon=True).start()
+                threading.Thread(target=self.rcv_comm, args=(comm,), daemon=True).start()
 
             header = protocol.pack_change_file(to_path)
             comm.send_file(header, file_data)
 
-    def visualize_open_file(self, file_path):
+    def visualize_open_file(self, file_path, comm: ClientComm):
         """
         opening file to user and activates monitoring on file
         :param file_path: path of file
@@ -139,8 +139,10 @@ class MainUserClient:
         pid = list(new_pid)[0]
 
         process_handler.wait_for_process_to_close(pid)
-
         FileHandler.delete(file_path)
+        ClientComm.close()
+
+
         print('ended visualize file')
 
     def rcv_graphic(self, q: Queue):
@@ -438,22 +440,24 @@ class MainUserClient:
         else:
             self.client.send(protocol.pack_do_delete(path))
 
-    def rcv_comm(self, q):
+    def rcv_comm(self, comm: ClientComm):
         """
         gets data from server and calls functions accordingly
         :param : client comm
         """
-
+        q = comm.rcv_q
         commands = {'02': self.handle_status_register, '04': self.handle_status_login, '05': self.handle_got_file_tree,
                     '09': self.handle_status_rename, '07': self.handle_status_create, '13': self.handle_status_move,
-                    '15': self.handle_status_clone, '17': self.handle_status_open, '11': self.handle_status_delete,
-                    '19': self.handle_status_saved_file}
+                    '15': self.handle_status_clone, '17': partial(self.handle_status_open, comm),
+                    '11': self.handle_status_delete, '19': self.handle_status_saved_file}
         while True:
             data = protocol.unpack(q.get())
+
             if not data:
                 print('got None from protocol')
                 continue
-
+            if data == '00':
+                return
             print('data from server:', data)
             opcode, params = data
 
@@ -499,7 +503,7 @@ class MainUserClient:
         if not status:
             self.call_error(f"couldn't save file: {path}")
 
-    def handle_status_open(self, vars: list):
+    def handle_status_open(self, comm: ClientComm, vars: list):
         """
         showing user the file if opened
         :param vars: status and path
@@ -521,7 +525,7 @@ class MainUserClient:
 
             elif os.path.isfile(path):
 
-                threading.Thread(target=self.visualize_open_file, args=(path,), daemon=True).start()
+                threading.Thread(target=self.visualize_open_file, args=(path, comm), daemon=True).start()
             else:
                 print('error in opening file')
         else:
@@ -533,7 +537,7 @@ class MainUserClient:
         :param path: path of file
         return:
         """
-
+        print('threading', len(threading.enumerate()))
         # file is local so opens it immediately
         if self.file_handler.is_local(path):
             local = self.file_handler.remove_ip(self.user_name, path)
@@ -556,7 +560,7 @@ class MainUserClient:
 
                 comm = ClientComm(ip_to_connect, Settings.pear_port, rcv_q, 8)
                 self.ip_comm[ip_to_connect] = comm
-                threading.Thread(target=self.rcv_comm, args=(rcv_q,), daemon=True).start()
+                threading.Thread(target=self.rcv_comm, args=(comm,), daemon=True).start()
 
             else:
                 comm = self.ip_comm[ip_to_connect]
