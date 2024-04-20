@@ -110,7 +110,16 @@ def pack_status_move(status: bool, old_path: str, new_path: str):
 
     return f'{packed},{old_path},{new_path}'
 
-def pack_do_move()
+def pack_do_move(new_path: str, old_path: str):
+    """
+    builds by protocol to move file
+    :param new_path: the path of the file to save it with
+    :param old_path: the old path of the file
+    :return: packed str
+    """
+    packed = '38'
+    return f'{packed}{new_path},{old_path}'
+
 
 def pack_status_clone(status: bool, copy_from: str, copy_to: str):
     """

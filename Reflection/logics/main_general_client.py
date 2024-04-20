@@ -154,9 +154,9 @@ def handle_do_move(client: ClientComm, vars: list):
         rcv_q = Queue()
 
         comm = ClientComm(move_to_ip, Settings.pear_port, rcv_q, 8)
-        # self.ip_comm[ip_to_connect] = comm
+        ip_comm[move_to_ip] = comm
         threading.Thread(target=rcv_comm, args=(rcv_q,), daemon=True).start()
-        comm.send()
+        comm.send(client_protocol.pack_do_move(move_to, move_from))
 
 
 def handle_delete(client: ClientComm, vars: list):
@@ -214,6 +214,7 @@ if __name__ == '__main__':
     client_rcv_q = queue.Queue()
     server_rcv_q = queue.Queue()
     server_ip = Settings.server_ip
+    ip_comm = {}
     port = 2000
     client = ClientComm(server_ip, port, client_rcv_q, 6, 'G')
     file_server = ServerComm(Settings.pear_port, server_rcv_q, 8)
