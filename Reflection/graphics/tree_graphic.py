@@ -99,6 +99,7 @@ class TreeFrame(wx.Frame):
         pub.subscribe(self.add_object, "create")
         pub.subscribe(self.delete_object, "delete")
         pub.subscribe(notification.show_error, "error")
+        pub.subscribe(self.rename_object, "rename")
 
         self.tree.SetBackgroundColour(wx.Colour(30, 30, 30))
         self.Show()
@@ -301,7 +302,8 @@ class TreeFrame(wx.Frame):
             dialog = CreateFileDialog(self, dialog_title.capitalize(), is_folder)
             if dialog.ShowModal() == wx.ID_OK:
                 file_name = dialog.file_name
-                full_path = f'{path}\\{file_name}'
+                full_path = os.path.join(path, file_name)
+                print('full_path:', full_path)
                 if not self.valid_input(file_name, is_folder):
                     notification.show_error(f'name "{file_name}" is not valid')
                 elif full_path in self.path_item:
@@ -312,6 +314,51 @@ class TreeFrame(wx.Frame):
             else:
                 break
         dialog.Destroy()
+
+    def rename_object(self, old_path: str, new_name: str):
+        """
+        renames an object in the tree
+        :param old_path: the old path of the object
+        :param new_name: the new name of the object
+        :return if success in renaming object
+        """
+        worked = old_path in self.path_item
+        if worked:
+            item = self.path_item[old_path]
+            self.tree.SetItemText(item, new_name)
+
+            folder_path, _ = FileHandler.split_path_last_part(old_path)
+            new_path = os.path.join(folder_path, new_name)
+
+            to_add = {}
+            to_remove = []
+            for path in self.path_item.keys():
+                print('path:    ', path)
+                print('old_path:', old_path)
+                if path.startswith(old_path):
+                    print('got in')
+                    item = self.path_item[path]
+                    to_remove.append(path)
+                    replaced_path = path.replace(old_path, new_path, 1)
+                    print('replaced_path:', replaced_path)
+                    to_add[replaced_path] = item
+                    self.tree.SetItemData(item, replaced_path)
+
+                print()
+            for path in to_add:
+                self.path_item[path] = to_add[path]
+
+            for path in to_remove:
+                del self.path_item[path]
+
+            print('path_item_before:', self.path_item.keys())
+            print('path_item_after:', self.path_item.keys())
+            # is folder
+            if '.' not in new_name:
+                self.folders.remove(old_path)
+                self.folders.append(new_path)
+
+        return worked
 
     def delete_object(self, path: str):
         """
@@ -335,14 +382,15 @@ class TreeFrame(wx.Frame):
             return
 
         dir_on = self.path_item[path]
+        full_path = os.path.join(path, name)
         if typ == 'fld':
-            full_path = f'{path}\\{name}'
+
             new_item = self.tree.AppendItem(dir_on, f'{name}', data=full_path)
             self.path_item[full_path] = new_item
             self.folders.append(full_path)
             self.add_pic(new_item, name, True)
         else:
-            full_path = f'{path}\\{name}.{typ}'
+            full_path = f'{full_path}.{typ}'
             new_item = self.tree.AppendItem(dir_on, f'{name}.{typ}', data=full_path)
             self.path_item[full_path] = new_item
             self.add_pic(new_item, f'{name}.{typ}', False)

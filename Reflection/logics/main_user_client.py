@@ -343,16 +343,9 @@ class MainUserClient:
         :return: None
         """
         status, location, new_name = vars
-        if '.' in new_name:
-            just_name, typ = FileHandler.split_name_typ(new_name)
-        else:
-            typ = 'fld'
-            just_name, _ = FileHandler.split_name_typ(new_name)
-        # do local stuff of creating file
+
         if status == 'ok':
-            self.folders_remove(location)
-            folder_path, _ = self.file_handler.split_path_last_part(location)
-            self.folders_add(folder_path, just_name, typ)
+            self.folders_rename(location, new_name)
         else:
             self.call_error(f'could not rename to "{new_name}"')
 
@@ -409,18 +402,11 @@ class MainUserClient:
 
         if self.file_handler.is_local(path):
             local = self.file_handler.remove_ip(self.user_name, path)
-            if '.' in new_name:
-                just_name, typ = FileHandler.split_name_typ(new_name)
-            else:
-                typ = 'fld'
-                just_name, _ = FileHandler.split_name_typ(new_name)
 
             # do local stuff of creating file
             if self.file_handler.rename(local, new_name):
+                self.folders_rename(path, new_name)
 
-                self.folders_remove(path)
-                folder_path, _ = self.file_handler.split_path_last_part(path)
-                self.folders_add(folder_path, just_name, typ)
             else:
                 self.call_error(f'could not rename to "{new_name}"')
         else:
@@ -523,8 +509,12 @@ class MainUserClient:
         :param vars: status and path
         :return: None
         """
+
         status = vars[0]
-        if status:
+        if status == 'no':
+            self.call_error('could not open file')
+            return
+        else:
 
             path = vars[1]
             print('path:', path)
@@ -540,9 +530,8 @@ class MainUserClient:
             elif os.path.isfile(path):
                 threading.Thread(target=self.visualize_open_file, args=(path, comm), daemon=True).start()
             else:
-                print('error in opening file')
-        else:
-            self.call_error("couldn't open file")
+                self.call_error('error in opening file')
+
 
     def get_file_data(self, path: str):
         """
@@ -550,7 +539,7 @@ class MainUserClient:
         :param path: path of file
         return:
         """
-        print('threading', len(threading.enumerate()))
+        print('path of file to get data:', path)
         # file is local so opens it immediately
         if self.file_handler.is_local(path):
             local = self.file_handler.remove_ip(self.user_name, path)
@@ -613,6 +602,26 @@ class MainUserClient:
 
         wx.CallAfter(pub.sendMessage, "create", path=path, name=name, typ=typ)
 
+    def folders_rename(self, old_path: str, new_name: str):
+        """
+        tells graphics to rename object
+        :param old_path: the old path of the object
+        :param new_name: the new name of the object
+        :return None
+        """
+        folder_path, old_name = FileHandler.split_path_last_part(old_path)
+        new_path = os.path.join(folder_path, new_name)
+
+        # folder
+        if '.' not in new_name:
+            self.folders[new_path] = self.folders.pop(old_path)
+
+        # file
+        else:
+            self.folders[folder_path].remove(old_name)
+            self.folders[folder_path].append(new_name)
+
+        wx.CallAfter(pub.sendMessage, "rename", old_path=old_path, new_name=new_name)
     def create(self, path: str, name: str, typ: str):
         """
         gets path and typ, creates it

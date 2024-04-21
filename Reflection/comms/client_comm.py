@@ -65,7 +65,6 @@ class ClientComm:
                 else:
                     self.rcv_q.put(data)
 
-
     def _receive_file(self, header):
         """
         gets header of file, receives file
