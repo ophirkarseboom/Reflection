@@ -44,6 +44,7 @@ class ClientComm:
         try:
             self.server.connect((self.server_ip, self.port))
         except Exception as e:
+            self.close()
             sys.exit("server is down, try again later")
 
         self._key_exchange()
@@ -55,6 +56,7 @@ class ClientComm:
                 continue
             except Exception as e:
                 print(e)
+                self.close()
                 sys.exit('server is no good')
             else:
                 data = self.symmetric.decrypt(data)
@@ -76,6 +78,7 @@ class ClientComm:
         try:
             data_len = int(self.server.recv(self.send_len).decode())
         except Exception as e:
+            self.close()
             print('error in receiving file:', str(e))
 
         else:
@@ -129,6 +132,7 @@ class ClientComm:
             data = self.server.recv(length)
 
         except Exception as e:
+            self.close()
             sys.exit("server is down, try again later")
 
         public_key = data[2:]
@@ -170,6 +174,7 @@ class ClientComm:
         self.server.send(str(len(data)).zfill(self.send_len).encode() + data)
         # except Exception as e:
         #     print('client comm - send:', str(e))
+        #     self.close()
         #     sys.exit("server is down, try again later")
 
     def send_file(self, header, data):
@@ -186,6 +191,7 @@ class ClientComm:
         try:
             self.server.send(header_len + header + data_len + data)
         except Exception as e:
+            self.close()
             print('client comm - send file', str(e))
             sys.exit("server is down, try again later")
 
