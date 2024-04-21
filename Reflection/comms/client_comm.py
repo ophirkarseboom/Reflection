@@ -21,7 +21,7 @@ class ClientComm:
 
     main_server_port = 2000
     file_receive_opcodes = ('17', '18')
-    def __init__(self, server_ip, port, rcv_q, send_len, client_type=None):
+    def __init__(self, server_ip, port, rcv_q, send_len, client_type):
         self.send_len = send_len
         self.server_ip = server_ip
         self.port = port
@@ -140,9 +140,10 @@ class ClientComm:
             self.server.send(str(len(key_to_send)).zfill(self.send_len).encode())
             self.server.send(key_to_send)
         except Exception as e:
+            self.close()
             sys.exit('could not send server key encrypted')
 
-        if self.port == self.main_server_port and self.client_type:
+        else:
             self._send_client_type()
 
 

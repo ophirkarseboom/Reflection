@@ -197,11 +197,7 @@ class ServerComm:
 
             encryption = symmetrical_encryption.SymmetricalEncryption(data[2:])
 
-            if self.port == self.main_server_port:
-                self._get_client_type(client, ip, encryption)
-
-            else:
-                self.open_clients[client] = [ip, encryption]
+            self._get_client_type(client, ip, encryption)
 
     def _get_client_type(self, client, ip, encryption):
         """

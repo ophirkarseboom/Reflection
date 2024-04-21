@@ -112,7 +112,7 @@ class MainUserClient:
                 comm = self.ip_comm[ip_to_send]
             else:
                 rcv_q = Queue()
-                comm = ClientComm(ip_to_send, Settings.pear_port, rcv_q, 8)
+                comm = ClientComm(ip_to_send, Settings.pear_port, rcv_q, 8, 'U')
                 self.ip_comm[ip_to_send] = comm
                 threading.Thread(target=self.rcv_comm, args=(comm,), daemon=True).start()
 
@@ -571,7 +571,7 @@ class MainUserClient:
             if ip_to_connect not in self.ip_comm:
                 rcv_q = Queue()
 
-                comm = ClientComm(ip_to_connect, Settings.pear_port, rcv_q, 8)
+                comm = ClientComm(ip_to_connect, Settings.pear_port, rcv_q, 8, 'U')
                 self.ip_comm[ip_to_connect] = comm
                 threading.Thread(target=self.rcv_comm, args=(comm,), daemon=True).start()
 

@@ -125,8 +125,9 @@ def handle_clone(client: ClientComm, vars: list):
     print('copy_from:', copy_from)
     print('copy_to:', copy_to)
     new_file_name = FileHandler.build_name_for_file(copy_to, copy_from, '(copy)')
-    status = FileHandler.direct_copy_file(copy_from, f'{copy_to}\\{new_file_name}')
-    client.send(client_protocol.pack_status_clone(status, copy_from, f'{copy_to}\\{new_file_name}'))
+    new_path = str(os.path.join(copy_to, new_file_name))
+    status = FileHandler.direct_copy_file(copy_from, new_path)
+    client.send(client_protocol.pack_status_clone(status, copy_from, new_path))
 
 
 def handle_do_move(client: ClientComm, vars: list):
@@ -154,7 +155,7 @@ def handle_do_move(client: ClientComm, vars: list):
     else:
         rcv_q = Queue()
 
-        comm = ClientComm(move_to_ip, Settings.pear_port, rcv_q, 8)
+        comm = ClientComm(move_to_ip, Settings.pear_port, rcv_q, 8, 'G')
         ip_comm[move_to_ip] = comm
         threading.Thread(target=rcv_comm, args=(comm, rcv_q), daemon=True).start()
         local_file_data = FileHandler.remove_ip(username, move_from)
