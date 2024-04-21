@@ -21,8 +21,9 @@ def rcv_comm(comm, q):
     :param comm: client or server comm
     :param q: msg q
     """
-    commands = {'23': handle_delete, '16': handle_open_file, '21': handle_rename, '25': handle_do_move, '27': handle_clone,
-                '18': handle_changed_file, '31': handle_asked_file_tree, '32': handle_create, '34': handle_status_mac}
+    commands = {'23': handle_delete, '16': handle_open_file, '21': handle_rename, '25': handle_do_move,
+                '27': handle_clone, '18': handle_changed_file, '31': handle_asked_file_tree,
+                '32': handle_create, '34': handle_status_mac}
     while True:
         is_server = isinstance(comm, ServerComm)
         if is_server:
@@ -155,8 +156,13 @@ def handle_do_move(client: ClientComm, vars: list):
 
         comm = ClientComm(move_to_ip, Settings.pear_port, rcv_q, 8)
         ip_comm[move_to_ip] = comm
-        threading.Thread(target=rcv_comm, args=(rcv_q,), daemon=True).start()
-        comm.send(client_protocol.pack_do_move(move_to, move_from))
+        threading.Thread(target=rcv_comm, args=(comm, rcv_q), daemon=True).start()
+        local_file_data = FileHandler.remove_ip(username, move_from)
+        with open(local_file_data, 'rb') as f:
+            file_data = f.read()
+
+        header = client_protocol.pack_do_move(move_to, move_from)
+        comm.send_file(header, file_data)
 
 
 def handle_delete(client: ClientComm, vars: list):

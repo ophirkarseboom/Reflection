@@ -260,7 +260,7 @@ class ServerComm:
                 sock = ip
 
             if sock and self.is_running:
-                # print(f'sending to {ip}:', data)
+                print(f'sending to {ip}:', data)
                 if encrypt and sock in self.open_clients:
                     encryption = self.open_clients[sock][1]
                     data = encryption.encrypt(data)
