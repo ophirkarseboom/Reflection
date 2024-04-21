@@ -26,8 +26,6 @@ class MainUserClient:
         self.ip_comm = {}
         self.graphic_q = Queue()
         self.downloads = {}  # {local path, path on gui}
-        self.a = threading.Thread(target=self.trys)
-        self.a.start()
         threading.Thread(target=self.rcv_comm, args=(self.client,), daemon=True).start()
         threading.Thread(target=self.rcv_graphic, args=(self.graphic_q,), daemon=True).start()
         app = wx.App(False)
@@ -35,8 +33,6 @@ class MainUserClient:
         self.frame.Show()
         app.MainLoop()
 
-    def trys(self):
-        pass
 
     def monitor_file(self, file_path: str, end_q: Queue):
         """
@@ -127,28 +123,28 @@ class MainUserClient:
         """
         opening file to user and activates monitoring on file
         :param file_path: path of file
-        :param comm: the client_comm opened with othe pc
+        :param comm: the client_comm opened with other pc
         :return: None
         """
         # start monitoring file
         q = Queue()
-        self.a = threading.Thread(target=self.monitor_file, args=(file_path, q), daemon=True)
-        self.a.start()
+        threading.Thread(target=self.monitor_file, args=(file_path, q), daemon=True).start()
 
         process_name = process_handler.get_process_name(file_path)
         ls1 = process_handler.get_all_pid(process_name)
         dir_path, _ = FileHandler.split_path_last_part(file_path)
         FileHandler.open_file(file_path)
-
+        print('ls1:', ls1)
         # wait for file to be added to pid list
         while True:
             ls2 = process_handler.get_all_pid(process_name)
+            print('ls2:', ls2)
             if ls2 != ls1:
                 break
 
         new_pid = set(ls2) - set(ls1)
         pid = list(new_pid)[0]
-
+        print('this is pid:', pid)
         process_handler.wait_for_process_to_close(pid)
 
         # closing all related connections to pc
@@ -554,7 +550,6 @@ class MainUserClient:
         :param path: path of file
         return:
         """
-        print('is_alive:', self.a.isAlive())
         print('threading', len(threading.enumerate()))
         # file is local so opens it immediately
         if self.file_handler.is_local(path):

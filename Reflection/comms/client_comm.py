@@ -47,7 +47,7 @@ class ClientComm:
             sys.exit("server is down, try again later")
 
         self._key_exchange()
-        while self.running:
+        while True:
             try:
                 length = int(self.server.recv(self.send_len).decode())
                 data = self.server.recv(length)
@@ -189,9 +189,8 @@ class ClientComm:
             sys.exit("server is down, try again later")
 
     def close(self):
-        self.server.send(''.encode())
+        self.server.close()
         self.rcv_q.put('00')
-        self.running = False
 
 if __name__ == '__main__':
     rcv_q = queue.Queue()
