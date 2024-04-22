@@ -41,7 +41,6 @@ def rcv_comm(comm, q):
             continue
 
         print('data got:', data)
-
         opcode, params = data
 
         # ending thread listening
@@ -183,7 +182,7 @@ def handle_status_clone(client_got: ClientComm, vars: list):
     status = (status == 'ok')
 
     # informing server and closing connection to client
-    client.send(client_protocol.pack_status_move_to_server(status, copied_from, copied_to))
+    client.send(client_protocol.pack_status_clone_to_server(status, copied_from, copied_to))
     client_got.close()
 
 def handle_status_move(client_got: ClientComm, vars: list):
