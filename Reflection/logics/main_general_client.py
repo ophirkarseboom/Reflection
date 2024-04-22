@@ -45,7 +45,7 @@ def rcv_comm(comm, q):
 
         # ending thread listening
         if opcode == '00':
-            return
+            break
 
         if is_server:
             commands[opcode](ip, comm, params)
@@ -129,15 +129,16 @@ def handle_clone(client: ClientComm, vars: list):
     status = FileHandler.direct_copy_file(copy_from, new_path)
     client.send(client_protocol.pack_status_clone(status, copy_from, new_path))
 
-def handle_status_move(client: ClientComm, vars: list):
+
+def handle_status_move(client_got: ClientComm, vars: list):
     """
     informing server if moved file worked and finishing moving if needed
-    :param client: the comm
+    :param client_got: the comm
     :param vars: status, new_path, old_path
     """
     if len(vars) != 3:
         print('amount of vars is not valid')
-        client.close()
+        client_got.close()
         return
 
     status, moved_to, moved_from = vars
@@ -148,6 +149,7 @@ def handle_status_move(client: ClientComm, vars: list):
         FileHandler.delete(local_moved_from)
 
     client.send(client_protocol.pack_status_move_to_server(status, moved_from, moved_to))
+    client_got.close()
 
 def move_from_client(got_ip: str, server: ServerComm, vars: list):
     """
