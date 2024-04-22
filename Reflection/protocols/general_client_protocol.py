@@ -129,7 +129,7 @@ def pack_status_move_to_client(status: bool, moved_to: str, moved_from: str):
     :param moved_from: the old path of the file
     :return: packed str
     """
-    packed = '37'
+    packed = '39'
     if status:
         packed += 'ok'
     else:
@@ -157,7 +157,7 @@ def pack_status_clone_to_client(status: bool, cloned_to: str, cloned_from: str):
     :param cloned_from: the old path of the file
     :return: packed str
     """
-    packed = '39'
+    packed = '37'
     if status:
         packed += 'ok'
     else:

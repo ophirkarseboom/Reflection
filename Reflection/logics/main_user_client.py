@@ -348,7 +348,6 @@ class MainUserClient:
         print('copy_from:', copy_from)
         print('copy_to:', copy_to)
         folder_copied_to, file_name = FileHandler.split_path_last_part(copy_to)
-
         just_name, typ = FileHandler.split_name_typ(file_name)
 
         # informing graphics
