@@ -21,9 +21,9 @@ def rcv_comm(comm, q):
     :param comm: client or server comm
     :param q: msg q
     """
-    commands = {'23': handle_delete, '16': handle_open_file, '21': handle_rename, '25': handle_do_move,
+    commands = {'23': handle_delete, '16': handle_open_file, '21': handle_rename, '25': move_from_server,
                 '27': handle_clone, '18': handle_changed_file, '31': handle_asked_file_tree,
-                '32': handle_create, '34': handle_status_mac}
+                '32': handle_create, '34': handle_status_mac, '38': move_from_client, '39': handle_status_move}
     while True:
         is_server = isinstance(comm, ServerComm)
         if is_server:
@@ -129,8 +129,43 @@ def handle_clone(client: ClientComm, vars: list):
     status = FileHandler.direct_copy_file(copy_from, new_path)
     client.send(client_protocol.pack_status_clone(status, copy_from, new_path))
 
+def handle_status_move(client: ClientComm, vars: list):
+    """
+    informing server if moved file worked and finishing moving if needed
+    :param client: the comm
+    :param vars: status, new_path, old_path
+    """
+    if len(vars) != 3:
+        print('amount of vars is not valid')
+        client.close()
+        return
 
-def handle_do_move(client: ClientComm, vars: list):
+    status, moved_to, moved_from = vars
+    status = (status == 'ok')
+    if status:
+        username = FileHandler.get_user(moved_from)
+        local_moved_from = FileHandler.remove_ip(username, moved_from)
+        FileHandler.delete(local_moved_from)
+
+    client.send(client_protocol.pack_status_move_to_server(status, moved_from, moved_to))
+
+def move_from_client(got_ip: str, server: ServerComm, vars: list):
+    """
+    saves file in right position after moved and informing client
+    :param got_ip: the ip got the file from
+    :param server: the comm
+    :param vars:
+    """
+    if len(vars) != 3:
+        print('amount of vars is not valid')
+        server.disconnect_client(got_ip, True)
+        return
+
+    status, move_to, move_from = vars
+    status = (status == 'ok')
+    server.send(got_ip, client_protocol.pack_status_move_to_client(status, move_to, move_from))
+
+def move_from_server(client: ClientComm, vars: list):
     """
     moves a file
     :param client: client comm
@@ -149,7 +184,7 @@ def handle_do_move(client: ClientComm, vars: list):
         local_move_to = FileHandler.remove_ip(username, move_to)
 
         status = FileHandler.move(local_move_from, local_move_to)
-        client.send(client_protocol.pack_status_move(status, move_from, move_to))
+        client.send(client_protocol.pack_status_move_to_server(status, move_from, move_to))
 
     # sending file to other computer
     else:
