@@ -156,6 +156,7 @@ def move_from_client(got_ip: str, server: ServerComm, vars: list):
     :param server: the comm
     :param vars:
     """
+    print('got_ip:', got_ip)
     if len(vars) != 3:
         print('amount of vars is not valid')
         server.disconnect_client(got_ip, True)

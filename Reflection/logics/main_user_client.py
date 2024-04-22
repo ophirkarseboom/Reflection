@@ -263,9 +263,6 @@ class MainUserClient:
         if move_to not in self.folders:
             move_to, _ = FileHandler.split_path_last_part(move_to)
 
-        ip_from = FileHandler.extract_ip(self.user_name, file_to_move)
-        ip_to = FileHandler.extract_ip(self.user_name, move_to)
-
         print('move_to:', move_to)
         print('file_to_move:', file_to_move)
 
