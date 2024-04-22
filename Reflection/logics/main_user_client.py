@@ -239,7 +239,7 @@ class MainUserClient:
                     self.call_error('problem with uploading file')
                     continue
                 file_to_copy, copy_to = param_got.split(',')
-                self.clone(file_to_copy, copy_to)
+                self.clone_file(file_to_copy, copy_to)
 
             elif command == 'move':
                 if param_got.count(',') != 1:
@@ -284,7 +284,6 @@ class MainUserClient:
                 self.folders_remove(file_to_move)
                 print(f'adding: {move_to}\\{file_name}')
                 file_name, typ = FileHandler.split_name_typ(file_name)
-                # general_client_protocol.pack_status_move(moved, local_file_to_move, f'{local_move_to}\\{file_name}')
                 self.folders_add(move_to, file_name, typ)
                 self.folders_remove(file_to_move)
             else:
@@ -294,7 +293,7 @@ class MainUserClient:
             self.client.send(protocol.pack_do_move(file_to_move, new_file_path))
 
 
-    def clone(self, file_to_copy: str, copy_to: str):
+    def clone_file(self, file_to_copy: str, copy_to: str):
         """
         copies file from one folder to another
         :param file_to_copy: full path of the file to copy
@@ -305,33 +304,25 @@ class MainUserClient:
         if copy_to not in self.folders:
             copy_to, _ = FileHandler.split_path_last_part(copy_to)
 
-        ip_from = FileHandler.extract_ip(self.user_name, file_to_copy)
-        ip_to = FileHandler.extract_ip(self.user_name, copy_to)
+        file_dir_path, file_name = FileHandler.split_path_last_part(file_to_copy)
+        file_name = FileHandler.build_name_for_file(self.folders, copy_to, file_to_copy, '(copy)')
+        new_file_path = str(os.path.join(copy_to, file_name))
 
         if self.file_handler.is_local(copy_to) and self.file_handler.is_local(file_to_copy):
-
             # making folders local
-            local_copy_to = FileHandler.remove_ip(self.user_name, copy_to)
+            local_new_file_path = FileHandler.remove_ip(self.user_name, new_file_path)
             local_file_to_copy = FileHandler.remove_ip(self.user_name, file_to_copy)
 
-            file_folder, file_name = FileHandler.split_path_last_part(local_file_to_copy)
-
-            new_file_name = FileHandler.build_name_for_file(self.folders, local_copy_to, local_file_to_copy, '(copy)')
-            print('new_file_name:', new_file_name)
-            print('local_copy_to:', local_copy_to)
-
-            copied = FileHandler.direct_copy_file(f'{file_folder}\\{file_name}',
-                                                  f'{local_copy_to}\\{new_file_name}')
-
+            copied = FileHandler.direct_copy_file(local_file_to_copy, local_new_file_path)
             if copied:
-                file_name, typ = FileHandler.split_name_typ(new_file_name)
+                file_name, typ = FileHandler.split_name_typ(file_name)
                 self.folders_add(copy_to, file_name, typ)
-
-        elif ip_from == ip_to:
-            self.client.send(protocol.pack_do_clone(file_to_copy, copy_to))
+            else:
+                self.call_error(f'could not copy {file_name}')
 
         else:
-            self.call_error('cannot copy from 2 different computers')
+            self.client.send(protocol.pack_do_clone(file_to_copy, new_file_path))
+
 
     def handle_status_rename(self, vars: list):
         """

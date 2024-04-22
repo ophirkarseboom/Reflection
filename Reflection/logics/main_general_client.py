@@ -22,8 +22,9 @@ def rcv_comm(comm, q):
     :param q: msg q
     """
     commands = {'23': handle_delete, '16': handle_open_file, '21': handle_rename, '25': move_from_server,
-                '27': handle_clone, '18': handle_changed_file, '31': handle_asked_file_tree,
-                '32': handle_create, '34': handle_status_mac, '38': move_from_client, '39': handle_status_move}
+                '27': clone_from_server, '18': handle_changed_file, '31': handle_asked_file_tree,
+                '32': handle_create, '34': handle_status_mac, '36':clone_from_client, '37': handle_status_clone,
+                '38': move_from_client, '39': handle_status_move}
     while True:
         is_server = isinstance(comm, ServerComm)
         if is_server:
@@ -114,7 +115,7 @@ def handle_rename(client_got: ClientComm, vars: list):
     client_got.send(client_protocol.pack_status_rename(status, location, new_name))
 
 
-def handle_clone(client_got: ClientComm, vars: list):
+def clone_from_server(client_got: ClientComm, vars: list):
     """
     clones a file
     :param client_got: client comm
@@ -122,13 +123,68 @@ def handle_clone(client_got: ClientComm, vars: list):
     :return: None
     """
     copy_from, copy_to = vars
-    print('copy_from:', copy_from)
-    print('copy_to:', copy_to)
-    new_file_name = FileHandler.build_name_for_file(copy_to, copy_from, '(copy)')
-    new_path = str(os.path.join(copy_to, new_file_name))
-    status = FileHandler.direct_copy_file(copy_from, new_path)
-    client_got.send(client_protocol.pack_status_clone(status, copy_from, new_path))
+    username = FileHandler.get_user(copy_from)
 
+    copy_to_ip = FileHandler.extract_ip(username, copy_to)
+    my_ip = FileHandler.extract_ip(username, copy_from)
+
+    # locally cloning file
+    if my_ip == copy_to_ip:
+        local_copy_from = FileHandler.remove_ip(username, copy_from)
+        local_copy_to = FileHandler.remove_ip(username, copy_to)
+
+        status = FileHandler.direct_copy_file(local_copy_from, local_copy_to)
+        client_got.send(client_protocol.pack_status_clone_to_server(status, copy_from, copy_to))
+
+    # sending file to other computer
+    else:
+        rcv_q = Queue()
+
+        comm = ClientComm(copy_to_ip, Settings.pear_port, rcv_q, 8, 'G')
+        threading.Thread(target=rcv_comm, args=(comm, rcv_q), daemon=True).start()
+        local_file_data = FileHandler.remove_ip(username, copy_from)
+        with open(local_file_data, 'rb') as f:
+            file_data = f.read()
+
+        header = client_protocol.pack_do_clone(copy_to, copy_from)
+        comm.send_file(header, file_data)
+
+
+def clone_from_client(got_ip: str, server: ServerComm, vars: list):
+    """
+    saves file in right position after cloned and informing client
+    :param got_ip: the ip got the file from
+    :param server: the comm
+    :param vars:
+    """
+    print('got_ip:', got_ip)
+    if len(vars) != 3:
+        print('amount of vars is not valid')
+        server.disconnect_client(got_ip, True)
+        return
+
+    status, copy_to, copy_from = vars
+    status = (status == 'ok')
+    server.send(got_ip, client_protocol.pack_status_clone_to_client(status, copy_to, copy_from))
+
+
+def handle_status_clone(client_got: ClientComm, vars: list):
+    """
+    informing server if cloned file worked
+    :param client_got: the comm
+    :param vars: status, new_path, old_path
+    """
+    if len(vars) != 3:
+        print('amount of vars is not valid')
+        client_got.close()
+        return
+
+    status, copied_to, copied_from = vars
+    status = (status == 'ok')
+
+    # informing server and closing connection to client
+    client.send(client_protocol.pack_status_move_to_server(status, copied_from, copied_to))
+    client_got.close()
 
 def handle_status_move(client_got: ClientComm, vars: list):
     """
@@ -143,11 +199,14 @@ def handle_status_move(client_got: ClientComm, vars: list):
 
     status, moved_to, moved_from = vars
     status = (status == 'ok')
+
+    # completing moving
     if status:
         username = FileHandler.get_user(moved_from)
         local_moved_from = FileHandler.remove_ip(username, moved_from)
         FileHandler.delete(local_moved_from)
 
+    # informing server and closing connection to client
     client.send(client_protocol.pack_status_move_to_server(status, moved_from, moved_to))
     client_got.close()
 
@@ -194,7 +253,6 @@ def move_from_server(client_got: ClientComm, vars: list):
         rcv_q = Queue()
 
         comm = ClientComm(move_to_ip, Settings.pear_port, rcv_q, 8, 'G')
-        ip_comm[move_to_ip] = comm
         threading.Thread(target=rcv_comm, args=(comm, rcv_q), daemon=True).start()
         local_file_data = FileHandler.remove_ip(username, move_from)
         with open(local_file_data, 'rb') as f:
@@ -260,7 +318,6 @@ if __name__ == '__main__':
     client_rcv_q = queue.Queue()
     server_rcv_q = queue.Queue()
     server_ip = Settings.server_ip
-    ip_comm = {}
     port = 2000
     client = ClientComm(server_ip, port, client_rcv_q, 6, 'G')
     file_server = ServerComm(Settings.pear_port, server_rcv_q, 8)

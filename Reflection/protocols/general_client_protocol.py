@@ -120,6 +120,7 @@ def pack_do_move(new_path: str, old_path: str):
     packed = '38'
     return f'{packed}{new_path},{old_path}'
 
+
 def pack_status_move_to_client(status: bool, moved_to: str, moved_from: str):
     """
     packs if worked moving file to client
@@ -128,7 +129,7 @@ def pack_status_move_to_client(status: bool, moved_to: str, moved_from: str):
     :param moved_from: the old path of the file
     :return: packed str
     """
-    packed = '39'
+    packed = '37'
     if status:
         packed += 'ok'
     else:
@@ -136,7 +137,35 @@ def pack_status_move_to_client(status: bool, moved_to: str, moved_from: str):
 
     return f'{packed},{moved_to},{moved_from}'
 
-def pack_status_clone(status: bool, copy_from: str, copy_to: str):
+
+def pack_do_clone(new_path: str, old_path: str):
+    """
+    builds by protocol to clone file
+    :param new_path: the path of the file to save it with
+    :param old_path: the old path of the file
+    :return: packed str
+    """
+    packed = '36'
+    return f'{packed}{new_path},{old_path}'
+
+
+def pack_status_clone_to_client(status: bool, cloned_to: str, cloned_from: str):
+    """
+    packs if worked cloning file to client
+    :param status: boolean (success of failure)
+    :param cloned_to: the new path of the file
+    :param cloned_from: the old path of the file
+    :return: packed str
+    """
+    packed = '39'
+    if status:
+        packed += 'ok'
+    else:
+        packed += 'no'
+
+    return f'{packed},{cloned_to},{cloned_from}'
+
+def pack_status_clone_to_server(status: bool, copy_from: str, copy_to: str):
     """
     gets a boolean that tells if action worked or not and returns the packed str
     :param copy_to: folder to copy to

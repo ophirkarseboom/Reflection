@@ -266,19 +266,14 @@ def got_clone(got_ip: str, vars: str):
     """
 
     if len(vars) != 2:
-
         handle_disconnect(got_ip, False)
         return
 
     copy_from, copy_to = vars
     user_got = get_key_by_value(username_ips, got_ip)
     ip_from = FileHandler.extract_ip(user_got, copy_from)
-    ip_to = FileHandler.extract_ip(user_got, copy_to)
-    if ip_from == ip_to:
-        ip_to_send = (ip_from, 'G')
-        path_from = FileHandler.remove_ip(user_got, copy_from)
-        path_to = FileHandler.remove_ip(user_got, copy_to)
-        server_comm.send(ip_to_send, protocol.pack_do_clone(path_from, path_to))
+    ip_to_send = (ip_from, 'G')
+    server_comm.send(ip_to_send, protocol.pack_do_clone(copy_from, copy_to))
 
 
 def handle_status_rename(got_ip: str, vars: str):
@@ -334,14 +329,9 @@ def handle_status_clone(got_ip: str, vars: str):
         return
 
     status, copy_from, copy_to = vars
-    print('status:', status)
-    # username = copy_from.replace(FileHandler.root, '')
-    # username = username[:username.index('\\')]
-    username = FileHandler.get_user(copy_from)
 
+    username = FileHandler.get_user(copy_from)
     ip_to_send = username_ips[username]
-    copy_from = FileHandler.insert_ip(copy_from, username, got_ip[0])
-    copy_to = FileHandler.insert_ip(copy_to, username, got_ip[0])
     status = status == 'ok'
     server_comm.send(ip_to_send, protocol.pack_status_clone(status, copy_from, copy_to))
 
