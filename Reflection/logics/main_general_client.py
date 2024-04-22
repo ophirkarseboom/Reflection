@@ -64,7 +64,7 @@ def handle_changed_file(got_ip: str, server: ServerComm, vars: list):
         return
     status = (vars[0] == 'ok')
     path = vars[1]
-    client_protocol.pack_status_change_file(status, path)
+    server.send(got_ip, client_protocol.pack_status_change_file(status, path))
 
 def handle_open_file(got_ip: str, server: ServerComm, vars: list):
     """
@@ -91,33 +91,33 @@ def handle_open_file(got_ip: str, server: ServerComm, vars: list):
     else:
         server.send(got_ip, client_protocol.pack_status_open_file(False))
 
-def handle_create(client: ClientComm, vars: list):
+def handle_create(client_got: ClientComm, vars: list):
     """
     creates what server sent if possible and returns status
-    :param client: client comm
+    :param client_got: client comm
     :param vars: location of creation and it's type
     :return: None
     """
     location, typ = vars
     status = FileHandler.create(location, typ)
-    client.send(client_protocol.pack_status_create(status, location, typ))
+    client_got.send(client_protocol.pack_status_create(status, location, typ))
 
-def handle_rename(client: ClientComm, vars: list):
+def handle_rename(client_got: ClientComm, vars: list):
     """
     renames a file\folder
-    :param client: client comm
+    :param client_got: client comm
     :param vars: location of object to rename and the new name
     :return: None
     """
     location, new_name = vars
     status = FileHandler.rename(location, new_name)
-    client.send(client_protocol.pack_status_rename(status, location, new_name))
+    client_got.send(client_protocol.pack_status_rename(status, location, new_name))
 
 
-def handle_clone(client: ClientComm, vars: list):
+def handle_clone(client_got: ClientComm, vars: list):
     """
     clones a file
-    :param client: client comm
+    :param client_got: client comm
     :param vars: location of object to clone and the new location
     :return: None
     """
@@ -127,7 +127,7 @@ def handle_clone(client: ClientComm, vars: list):
     new_file_name = FileHandler.build_name_for_file(copy_to, copy_from, '(copy)')
     new_path = str(os.path.join(copy_to, new_file_name))
     status = FileHandler.direct_copy_file(copy_from, new_path)
-    client.send(client_protocol.pack_status_clone(status, copy_from, new_path))
+    client_got.send(client_protocol.pack_status_clone(status, copy_from, new_path))
 
 
 def handle_status_move(client_got: ClientComm, vars: list):
@@ -168,10 +168,10 @@ def move_from_client(got_ip: str, server: ServerComm, vars: list):
     status = (status == 'ok')
     server.send(got_ip, client_protocol.pack_status_move_to_client(status, move_to, move_from))
 
-def move_from_server(client: ClientComm, vars: list):
+def move_from_server(client_got: ClientComm, vars: list):
     """
     moves a file
-    :param client: client comm
+    :param client_got: client comm
     :param vars: location of object to move and the new location
     :return: None
     """
@@ -187,7 +187,7 @@ def move_from_server(client: ClientComm, vars: list):
         local_move_to = FileHandler.remove_ip(username, move_to)
 
         status = FileHandler.move(local_move_from, local_move_to)
-        client.send(client_protocol.pack_status_move_to_server(status, move_from, move_to))
+        client_got.send(client_protocol.pack_status_move_to_server(status, move_from, move_to))
 
     # sending file to other computer
     else:
@@ -204,16 +204,16 @@ def move_from_server(client: ClientComm, vars: list):
         comm.send_file(header, file_data)
 
 
-def handle_delete(client: ClientComm, vars: list):
+def handle_delete(client_got: ClientComm, vars: list):
     """
     deletes what server sent if possible and returns status to server
-    :param client: client comm
+    :param client_got: client comm
     :param vars: location to delete
     :return: None
     """
     location = vars[0]
     status = FileHandler.delete(location)
-    client.send(client_protocol.pack_status_delete(status, location))
+    client_got.send(client_protocol.pack_status_delete(status, location))
 
 
 def send_mac():
@@ -224,9 +224,10 @@ def send_mac():
     client.send(to_send)
 
 
-def handle_status_mac(client: ClientComm, vars: list):
+def handle_status_mac(client_got: ClientComm, vars: list):
     """
     gets status and shows user what happened
+    :param client_got: the client got
     :param vars: success or failure
     :return: None
     """
@@ -237,10 +238,10 @@ def handle_status_mac(client: ClientComm, vars: list):
         print("a user didn't login through this computer")
 
 
-def handle_asked_file_tree(client: ClientComm, vars: list):
+def handle_asked_file_tree(client_got: ClientComm, vars: list):
     """
     gets folder and sends server file tree of folder
-    :param client: the comm got
+    :param client_got: the comm got
     :param vars: folder name
     :return: None
     """
@@ -252,7 +253,7 @@ def handle_asked_file_tree(client: ClientComm, vars: list):
     print('folder_path:', folder_path)
     if os.path.isdir(folder_path):
 
-        client.send(client_protocol.pack_file_tree(folder_path))
+        client_got.send(client_protocol.pack_file_tree(folder_path))
 
 
 if __name__ == '__main__':
