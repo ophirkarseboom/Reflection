@@ -34,6 +34,7 @@ def pack_file_tree(path: str):
     opcode = '20'
     return f'{opcode}{FileHandler.get_path_tree(path)}'
 
+
 def pack_mac(mac: str):
     """
     builds message by protocol and returns packed str
