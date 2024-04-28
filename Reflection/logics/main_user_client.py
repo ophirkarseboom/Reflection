@@ -663,7 +663,9 @@ class MainUserClient:
         :return: None
         """
         success = vars[0]
-        if success != 'ok':
+        if success == 'ok':
+            wx.CallAfter(pub.sendMessage, 'register_ok')
+        else:
             self.call_error('username already exists')
 
     def handle_status_login(self, vars):

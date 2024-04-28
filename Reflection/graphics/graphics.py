@@ -76,11 +76,6 @@ class MainPanel(wx.Panel):
         logo_bitmap = wx.Bitmap(logo_image)
         logo = wx.StaticBitmap(self, bitmap=logo_bitmap)
 
-        login_image = wx.Image(os.path.join(settings.Settings.pic_path, "login.png"))
-        login_image.Rescale(150, 50)
-        login_bitmap = wx.Bitmap(login_image)
-        login = wx.StaticBitmap(self, bitmap=login_bitmap)
-
         button_box = wx.BoxSizer(wx.HORIZONTAL)
         main_box.AddSpacer(15)
         main_box.Add(logo, 0, wx.CENTER | wx.ALL, 5)
@@ -96,15 +91,11 @@ class MainPanel(wx.Panel):
         # add all elements to sizer
         sizer.Add(main_box, wx.CENTER | wx.ALL, 5)
 
-        login.Bind(wx.EVT_LEFT_DOWN, self.on_click)
-
         # arrange the screen
         self.SetSizer(sizer)
         self.Layout()
         self.Hide()
 
-    def on_click(self, event):
-        print('clicked on image')
 
     def handle_login(self, evt):
         """
@@ -128,6 +119,8 @@ class MainPanel(wx.Panel):
 class RegisterPanel(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent, pos=wx.DefaultPosition, size=(500, 500))
+        self.username = None
+        self.password = None
         self.parent = parent
         sizer = wx.BoxSizer(wx.VERTICAL)
         bg_colour = wx.Colour(30, 30, 30)
@@ -190,6 +183,7 @@ class RegisterPanel(wx.Panel):
         self.Hide()
 
         pub.subscribe(self.parent.go_to_tree, "login")
+        pub.subscribe(self.do_login, 'register_ok')
 
     def handle_reg(self, event):
         """
@@ -197,13 +191,12 @@ class RegisterPanel(wx.Panel):
         :param event: event got
         :return: None
         """
-        username = self.nameField.GetValue()
-        password = self.passField.GetValue()
-        if not username or not password:
+        self.username = self.nameField.GetValue()
+        self.password = self.passField.GetValue()
+        if not self.username or not self.password:
             notification.show_error('must enter username and password')
         else:
-            self.parent.logic_q.put(('register', f'{username},{password}'))
-            self.parent.logic_q.put(('login', f'{username},{password}'))
+            self.parent.logic_q.put(('register', f'{self.username},{self.password}'))
 
     def handle_back(self, evt):
         """
@@ -213,6 +206,13 @@ class RegisterPanel(wx.Panel):
         """
         self.parent.change_panel(self, self.parent.panel)
 
+    def do_login(self):
+        """
+        calls login
+        :return: none
+        """
+        if self.username and self.password:
+            self.parent.logic_q.put(('login', f'{self.username},{self.password}'))
 
 class LoginPanel(wx.Panel):
     def __init__(self, parent):
