@@ -39,10 +39,9 @@ class MyFrame(wx.Frame):
 
         self.panel.Show()
         pub.subscribe(notification.show_error, "error")
-        pub.subscribe(notification.show_notification, "notification")
 
 
-    def change_panel(self, current, new_panel):
+    def change_panel(self, current: wx.Panel, new_panel: wx.Panel):
         """
         switches between panels
         :param current: current panel working on
@@ -50,7 +49,17 @@ class MyFrame(wx.Frame):
         :return: None
         """
         current.Hide()
+        new_panel.SetSize(current.GetSize())
         new_panel.Show()
+
+
+    def go_to_tree(self):
+        """
+        goes to tree panel
+        :return: None
+        """
+        self.Hide()
+        TreeFrame(self, self.logic_q)
 
 
 class MainPanel(wx.Panel):
@@ -114,44 +123,62 @@ class MainPanel(wx.Panel):
         self.frame.change_panel(self, self.frame.register)
 
 
+
+
 class RegisterPanel(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent, pos=wx.DefaultPosition, size=(500, 500))
         self.parent = parent
         sizer = wx.BoxSizer(wx.VERTICAL)
-        title = wx.StaticText(self, -1, label="Registration")
-        titlefont = wx.Font(22, wx.DECORATIVE, wx.NORMAL, wx.NORMAL)
-        title.SetForegroundColour(wx.BLACK)
-        title.SetFont(titlefont)
-        nameBox = wx.BoxSizer(wx.HORIZONTAL)
-        self.SetBackgroundColour(wx.Colour(30, 30, 30))
+        bg_colour = wx.Colour(30, 30, 30)
+        # Define the title label
+        title_font = wx.Font(24, wx.FONTFAMILY_MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
+        title_text = wx.StaticText(self, label="Register")
+        title_text.SetFont(title_font)
+        title_text.SetForegroundColour(wx.Colour(255, 255, 255))  # Custom text color
 
+        nameBox = wx.BoxSizer(wx.HORIZONTAL)
+        self.SetBackgroundColour(wx.Colour(bg_colour))
+        self.SetForegroundColour(wx.Colour(150, 150, 150))
         nameText = wx.StaticText(self, 1, label="Username: ")
 
         self.nameField = wx.TextCtrl(self, -1, name="username", size=(150, -1))
+        self.nameField.SetBackgroundColour(wx.Colour(50, 50, 50))  # Custom background color
+        self.nameField.SetForegroundColour(wx.Colour(255, 255, 255))
         nameBox.Add(nameText, 0, wx.ALL, 5)
         nameBox.Add(self.nameField, 0, wx.ALL, 5)
 
         passBox = wx.BoxSizer(wx.HORIZONTAL)
         passText = wx.StaticText(self, 1, label="Password: ")
+        # passText.SetFont()
 
         self.passField = wx.TextCtrl(self, -1, name="password", style=wx.TE_PASSWORD, size=(150, -1))
+        self.passField.SetBackgroundColour(wx.Colour(50, 50, 50))  # Custom background color
+        self.passField.SetForegroundColour(wx.Colour(255, 255, 255))
 
         passBox.Add(passText, 0, wx.ALL, 5)
         passBox.Add(self.passField, 0, wx.ALL, 5)
 
         btnBox = wx.BoxSizer(wx.HORIZONTAL)
 
-        backBtn = wx.Button(self, wx.ID_ANY, label="back", size=(100, 40))
-        backBtn.Bind(wx.EVT_BUTTON, self.handle_back)
-        btnBox.Add(backBtn, 1, wx.ALL, 5)
+        login_button = wx.Button(self, label="Register")
+        login_button.SetBackgroundColour(wx.Colour(50, 50, 50))  # Custom background color
+        login_button.SetForegroundColour(wx.Colour(255, 255, 255))  # Custom text color
+        login_button.SetFont(wx.Font(12, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD))
+        login_button.Bind(wx.EVT_BUTTON, self.handle_reg)
 
-        regBtn = wx.Button(self, wx.ID_ANY, label="Register", size=(100, 40))
-        regBtn.Bind(wx.EVT_BUTTON, self.handle_reg)
-        btnBox.Add(regBtn, 1, wx.ALL, 5)
+        back_btn = wx.Button(self, wx.ID_ANY, label="Back")
+        back_btn.SetBackgroundColour(wx.Colour(50, 50, 50))  # Custom background color
+        back_btn.SetForegroundColour(wx.Colour(255, 255, 255))  # Custom text color
+        back_btn.SetFont(wx.Font(12, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD))
+        back_btn.Bind(wx.EVT_BUTTON, self.handle_back)
+        btnBox.Add(back_btn, 1, wx.ALL, 5)
+        btnBox.Add(login_button, 0, wx.ALL, 5)
 
         # add all elements to sizer
-        sizer.Add(title, 0, wx.CENTER | wx.TOP, 5)
+        sizer.AddStretchSpacer(20)
+        sizer.Add(title_text, 0, wx.CENTER | wx.BOTTOM, border=0)
+
         sizer.AddSpacer(10)
         sizer.Add(nameBox, 0, wx.CENTER | wx.ALL, 5)
         sizer.Add(passBox, -1, wx.CENTER | wx.ALL, 5)
@@ -161,6 +188,8 @@ class RegisterPanel(wx.Panel):
         self.SetSizer(sizer)
         self.Layout()
         self.Hide()
+
+        pub.subscribe(self.parent.go_to_tree, "login")
 
     def handle_reg(self, event):
         """
@@ -174,6 +203,7 @@ class RegisterPanel(wx.Panel):
             notification.show_error('must enter username and password')
         else:
             self.parent.logic_q.put(('register', f'{username},{password}'))
+            self.parent.logic_q.put(('login', f'{username},{password}'))
 
     def handle_back(self, evt):
         """
@@ -248,7 +278,7 @@ class LoginPanel(wx.Panel):
         self.Layout()
         self.Hide()
 
-        pub.subscribe(self.go_to_tree, "login")
+        pub.subscribe(self.parent.go_to_tree, "login")
 
     def handle_login(self, event):
         """
@@ -277,8 +307,6 @@ class LoginPanel(wx.Panel):
         goes to tree panel
         :return: None
         """
-        print('got to go_to_tree')
-
         self.parent.Hide()
         TreeFrame(self, self.parent.logic_q)
 
