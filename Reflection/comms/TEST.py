@@ -1,21 +1,17 @@
-import time
-from functools import partial
-import threading
-def a1(val):
-    # threading.Thread(target=a2, daemon=False).start()
-    global nice
-    while True:
-        print(nice)
-def a2():
-    while True:
-        print('hi')
+import wx
+import wx.adv
+import wx.media
+
+class MyFrame(wx.Frame):
+    def __init__(self, parent, title):
+        super(MyFrame, self).__init__(parent, title=title, size=(300, 200))
+        panel = wx.Panel(self)
+        anim = wx.adv.Animation(r'C:\Users\ophir\PycharmProjects\Reflection\Reflection\graphics\icons\anim.gif', type=wx.adv.ANIMATION_TYPE_GIF)
+        ctrl = wx.adv.AnimationCtrl(panel, wx.ID_ANY, anim, pos=(0, 0))
+        ctrl.Play()
+        self.Show()
 
 if __name__ == '__main__':
-    nice = True
-    threading.Thread(target=a1, args=(nice,), daemon=True).start()
-    time.sleep(2)
-    nice = False
-    time.sleep(1)
-
-
-
+    app = wx.App(False)
+    frame = MyFrame(None, "GIF Player")
+    app.MainLoop()
