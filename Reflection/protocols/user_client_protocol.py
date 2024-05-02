@@ -13,27 +13,36 @@ def unpack(data: str):
 
         # if got file tree
         if opcode == '05':
-            folders = {}
-            lines = data.split('\n')[:-1]
-            for line in lines:
-                sep_line = line.split('?')
-                directory = sep_line[0]
-                try:
-                    dirs = ast.literal_eval(sep_line[1])
-                    files = ast.literal_eval(sep_line[2])
-                except Exception as e:
-                    print(f'in unpacking file tree: {str(e)}')
-                    break
-                dirs.append(',')
-                dirs.extend(files)
-                folders[directory] = dirs
-
+            folders = string_to_dict(data)
             parsed = [folders]
         else:
             parsed = data.split(',')
 
         return opcode, parsed
 
+
+def string_to_dict(data: str):
+    """
+    converts a string from protocol to a dictionary
+    :param data: a packed string from protocol
+    :return: a dictionary
+    """
+    folders = {}
+    lines = data.split('\n')[:-1]
+    for line in lines:
+        sep_line = line.split('?')
+        directory = sep_line[0]
+        try:
+            dirs = ast.literal_eval(sep_line[1])
+            files = ast.literal_eval(sep_line[2])
+        except Exception as e:
+            print(f'in unpacking file tree: {str(e)}')
+            break
+        dirs.append(',')
+        dirs.extend(files)
+        folders[directory] = dirs
+
+    return folders
 
 def pack_register(username: str, password: str):
     """

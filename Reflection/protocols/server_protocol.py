@@ -1,5 +1,6 @@
-import os
+
 import ast
+
 def unpack(data: str):
     """
     parsing by protocol and returns a tuple: (opcode, [params])
@@ -12,12 +13,36 @@ def unpack(data: str):
 
         # if got file tree
         if opcode == '20':
-            parsed = [data]
+            parsed = [string_to_dict(data)]
         else:
             parsed = data.split(',')
 
         return opcode, parsed
 
+
+
+def string_to_dict(data: str):
+    """
+    converts a string from protocol to a dictionary
+    :param data: a packed string from protocol
+    :return: a dictionary
+    """
+    folders = {}
+    lines = data.split('\n')[:-1]
+    for line in lines:
+        sep_line = line.split('?')
+        directory = sep_line[0]
+        try:
+            dirs = ast.literal_eval(sep_line[1])
+            files = ast.literal_eval(sep_line[2])
+        except Exception as e:
+            print(f'in unpacking file tree: {str(e)}')
+            break
+        dirs.append(',')
+        dirs.extend(files)
+        folders[directory] = dirs
+
+    return folders
 
 
 def pack_status_mac(status: bool):
@@ -87,7 +112,7 @@ def pack_status_rename(status: bool, path: str, new_name: str):
     gets a boolean that tells if action worked or not and returns the packed str
     :param status: boolean (success of failure)
     :param path: path of file
-    :param new_name:
+    :param new_name: the new name of the file
     :return: packed str
     """
     packed = '09'
@@ -165,14 +190,32 @@ def pack_ask_file_Tree(folder: str):
     return f'31{folder}'
 
 
-def pack_send_file_tree(file_tree: str):
+def pack_send_file_tree(file_tree: dict):
 
     """
     builds message by protocol and returns packed str
     :param file_tree: the file tree
     :return: packed str
     """
-    return f'05{file_tree}'
+    return f'05{dict_to_string(file_tree)}'
+
+
+def dict_to_string(data: dict):
+    """
+    turns a dictionary to string by protocol
+    :param data: the dictionary
+    :return: str
+    """
+    string = ''
+    for folder in data:
+        string += folder + '?'
+        folder_content = data[folder]
+        separator_index = folder_content.index(',')
+        folder_list = folder_content[:separator_index]
+        folder_files = folder_content[separator_index + 1:]
+        string += f'{folder_list}?{folder_files}\n'
+
+    return string
 
 
 def pack_do_rename(location: str, new_name: str):

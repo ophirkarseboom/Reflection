@@ -266,15 +266,20 @@ class MainUserClient:
         if move_to not in self.folders:
             move_to, _ = FileHandler.split_path_last_part(move_to)
 
+        file_dir_path, file_name = FileHandler.split_path_last_part(file_to_move)
+
+        # if moving to same dir
+        if move_to == file_dir_path or file_to_move in self.folders:
+            self.call_error('can not move a folder only files')
+            return
+
         print('move_to:', move_to)
         print('file_to_move:', file_to_move)
 
-        file_dir_path, file_name = FileHandler.split_path_last_part(file_to_move)
         file_name = FileHandler.build_name_for_file(self.folders, move_to, file_to_move, '(moved)')
         new_file_path = str(os.path.join(move_to, file_name))
-        # if moving to same dir
-        if move_to == file_dir_path:
-            return
+
+
 
         if self.file_handler.is_local(move_to) and self.file_handler.is_local(file_to_move):
             # making folders local
@@ -476,6 +481,7 @@ class MainUserClient:
             self.folders[user_path].insert(0, ip)
             new_folders.update(folders_got)
             new_folders[user_path].insert(0, ip)
+            print('new_folders:', new_folders)
             self.send_to_graphics('update_tree', {'dic': new_folders})
 
     def handle_status_saved_file(self, vars: list):

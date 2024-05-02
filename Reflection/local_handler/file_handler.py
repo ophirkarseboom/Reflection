@@ -2,7 +2,6 @@ import ctypes
 import os
 from Reflection.settings import Settings
 import shutil
-import psutil
 from subprocess import Popen
 
 class FileHandler:
@@ -103,20 +102,20 @@ class FileHandler:
 
 
     @ staticmethod
-    def rename(path: str, new_name: str):
+    def rename(location: str, new_name: str):
         """
         gets path and renames it
-        :param path: path to rename
+        :param location: path to rename
         :param new_name: new name to rename to
         :return: if renamed or not
         """
         rename = False
-        new_path, _ = FileHandler.split_path_last_part(path)
+        new_path, _ = FileHandler.split_path_last_part(location)
         new_path += f'\\{new_name}'
         print('new_path:', new_path)
-        if os.path.exists(path) and not os.path.exists(new_path):
+        if os.path.exists(location) and not os.path.exists(new_path):
             try:
-                os.rename(path, new_path)
+                os.rename(location, new_path)
             except Exception:
                 rename = False
             else:
@@ -126,18 +125,18 @@ class FileHandler:
 
 
     @staticmethod
-    def delete(path: str):
+    def delete(location: str):
         """
         gets path and deletes it from computer
-        :param path: path to delete
+        :param location: path to delete
         """
         delete = False
-        if os.path.isdir(path):
+        if os.path.isdir(location):
             delete = True
-            shutil.rmtree(path)
-        elif os.path.isfile(path):
+            shutil.rmtree(location)
+        elif os.path.isfile(location):
             delete = True
-            os.remove(path)
+            os.remove(location)
 
         return delete
 

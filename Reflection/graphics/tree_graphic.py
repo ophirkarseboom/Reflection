@@ -7,6 +7,7 @@ from Reflection import settings
 from queue import Queue
 from Reflection.graphics import notification
 from Reflection.local_handler.file_handler import FileHandler
+from Reflection.settings import Settings
 
 class CreateFileDialog(wx.Dialog):
     def __init__(self, parent, title: str, is_folder):
@@ -80,6 +81,8 @@ class TreeFrame(wx.Frame):
         self.forbidden = ('*', ',', '\\', '/', '[', ']', '{', '}', '?', '<', '>', ' ', ':', '|', '(', ')', '-')
         self.on_clipboard_path = None
         self.loading_cursor = wx.Cursor(wx.CURSOR_WAIT)
+
+        self.my_ip = Settings.get_ip()
 
         self.font = wx.Font(round(self.image_size * 0.7), wx.FONTFAMILY_MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
         self.tree.SetFont(self.font)
@@ -413,6 +416,8 @@ class TreeFrame(wx.Frame):
             self.add_pic(new_item, f'{name}.{typ}', False)
 
 
+
+
     def on_right_click(self, evt):
         """
         gets evt and does stuff for right click
@@ -420,6 +425,7 @@ class TreeFrame(wx.Frame):
         :return: None
         """
         item = evt.GetItem()
+        self.tree.SetFocusedItem(item)
         item_path = self.tree.GetItemData(item)
         if item_path in self.folders:
             commands = self.folder_commands
@@ -498,8 +504,13 @@ class TreeFrame(wx.Frame):
                 folder = False
                 continue
 
-            path = f'{father_path}\\{element}'
+            path = os.path.join(father_path, element)
+            if element == self.my_ip:
+                element = 'my_pc'
+
             new_item = self.tree.AppendItem(father, element, data=path)
+
+            print('first:', self.tree.GetItemData(self.tree.GetFirstVisibleItem()))
             self.path_item[path] = new_item
             self.add_pic(new_item, element, folder)
             if folder:

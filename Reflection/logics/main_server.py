@@ -5,6 +5,7 @@ from Reflection.database import db
 from Reflection.protocols import server_protocol as protocol
 from Reflection.encryption import symmetrical_encryption
 from Reflection.local_handler.file_handler import FileHandler
+import os
 import re
 
 
@@ -12,6 +13,7 @@ def handle_disconnect(client_ip: str, called_by_server_comm: bool):
     """
     disconnect client by ip and removes from dictionaries
     :param client_ip: ip address
+    :param called_by_server_comm: if was called by the server comm
     :return: None
     """
 
@@ -110,63 +112,46 @@ def handle_got_file_tree(got_ip, vars: list):
 
     file_tree = vars[0]
     got_ok = True
-    if len(vars) == 1 and '?' in file_tree:
-        user_to_send = file_tree.split('\\')[2].split('?')[0]
+    ip_to_send = None
+    folders_with_ip = {}
+    if len(vars) == 1:
+        user_to_send = FileHandler.get_user(list(file_tree.keys())[0])
         print('user_to_send:', user_to_send)
         if user_to_send in username_ips:
             ip_to_send = username_ips[user_to_send]
             print('to_send:', ip_to_send)
-
 
         else:
             got_ok = False
             ip_to_send = None
 
         if got_ok and ip_to_send in user_comps and got_ip in user_comps[ip_to_send]:
+            # result = replace_outside_brackets(file_tree, user_to_send, os.path.join(user_to_send, got_ip[0]))
+            folders_with_ip = {}
 
-            result = replace_outside_brackets(file_tree, user_to_send, f'{user_to_send}\\{got_ip[0]}')
+            # inserting ip to each path in dictionary
+            for folder_path in file_tree.keys():
+                user_plus_ip = os.path.join(user_to_send, got_ip[0])
+                if user_to_send in folder_path:
+                    new_folder_path = folder_path.replace(user_to_send, user_plus_ip, 1)
+                    folders_with_ip[new_folder_path] = file_tree[folder_path]
+                else:
+                    got_ok = False
+                    break
 
-            # sending file tree to user
-            server_comm.send(ip_to_send, protocol.pack_send_file_tree(result))
         else:
             got_ok = False
     else:
         got_ok = False
 
-    if not got_ok:
+    if got_ok and ip_to_send:
+        # sending file tree to user
+        server_comm.send(ip_to_send, protocol.pack_send_file_tree(folders_with_ip))
+
+    else:
         print('error in getting file tree')
         handle_disconnect(got_ip, False)
 
-
-def replace_outside_brackets(input_str: str, string_to_replace: str, replacement: str):
-    """
-    replaces a certain string only outside brackets
-    :param input_str: entire string
-    :param string_to_replace: what to replace
-    :param replacement: what ot replace it with
-    :return: new string
-    """
-    result = ''
-    inside_brackets = False
-    index = 0
-
-    while index < len(input_str):
-        if input_str[index] == '[':
-            inside_brackets = True
-            result += input_str[index]
-            index += 1
-        elif input_str[index] == ']':
-            inside_brackets = False
-            result += input_str[index]
-            index += 1
-        elif input_str[index:index + len(string_to_replace)] == string_to_replace and not inside_brackets:
-            result += replacement
-            index += len(string_to_replace)
-        else:
-            result += input_str[index]
-            index += 1
-
-    return result
 
 def handle_got_mac(client_ip: str, vars: list):
     """

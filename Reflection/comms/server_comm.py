@@ -159,8 +159,8 @@ class ServerComm:
         if not from_logic:
             self.rcv_q.put((ip, 'close'))
         self._disconnect_client(client)
-
         self.mutex.release()
+
     def _disconnect_client(self, client):
         """
         gets ip, deletes ip from all dictionaries and closes it's socket

@@ -254,11 +254,15 @@ def move_from_server(client_got: ClientComm, vars: list):
         comm = ClientComm(move_to_ip, Settings.pear_port, rcv_q, 8, 'G')
         threading.Thread(target=rcv_comm, args=(comm, rcv_q), daemon=True).start()
         local_file_data = FileHandler.remove_ip(username, move_from)
-        with open(local_file_data, 'rb') as f:
-            file_data = f.read()
 
-        header = client_protocol.pack_do_move(move_to, move_from)
-        comm.send_file(header, file_data)
+        if os.path.isfile(local_file_data):
+            with open(local_file_data, 'rb') as f:
+                file_data = f.read()
+
+            header = client_protocol.pack_do_move(move_to, move_from)
+            comm.send_file(header, file_data)
+        else:
+            print('something went wrong')
 
 
 def handle_delete(client_got: ClientComm, vars: list):
@@ -309,7 +313,6 @@ def handle_asked_file_tree(client_got: ClientComm, vars: list):
     time.sleep(1)
     print('folder_path:', folder_path)
     if os.path.isdir(folder_path):
-
         client_got.send(client_protocol.pack_file_tree(folder_path))
 
 

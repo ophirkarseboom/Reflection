@@ -4,9 +4,9 @@ import socket
 import os
 
 class Settings:
-    server_ip = '10.100.102.28'
+    server_ip = '192.168.4.94'
     server_port = 2000
-    root = 'C:\\reflection\\'
+    root = 'D:\\reflection\\'
     pear_port = 2500
     dir_working_on = os.path.dirname(os.path.realpath(__file__))
     local_path_directory = 'localChange\\'
