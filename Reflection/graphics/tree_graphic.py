@@ -100,9 +100,27 @@ class TreeFrame(wx.Frame):
         pub.subscribe(self.delete_object, "delete")
         pub.subscribe(notification.show_error, "error")
         pub.subscribe(self.rename_object, "rename")
+        pub.subscribe(self.refresh_cursor, "cursor")
 
         self.tree.SetBackgroundColour(wx.Colour(30, 30, 30))
         self.Show()
+
+    def refresh_cursor(self):
+        """
+        refreshes cursor after finishing action
+        """
+        self.SetCursor(wx.Cursor())
+
+    def send_to_logic(self, command: str, data: str):
+        """
+        sends to logic data
+        :param command: the command the logic should do with the data
+        :param data: the data delivered with the command
+        :return None
+        """
+        my_cursor = wx.Cursor(wx.CURSOR_WAIT)
+        self.SetCursor(my_cursor)
+        self.command_q.put((command, data))
 
 
     def change_size(self, evt: wx.MouseEvent):
@@ -231,8 +249,7 @@ class TreeFrame(wx.Frame):
                 on_item_path = self.tree.GetItemData(on_item)
                 print('paste')
                 if self.on_clipboard_path:
-
-                    self.command_q.put(('paste', f'{self.on_clipboard_path},{on_item_path}'))
+                    self.send_to_logic('paste', f'{self.on_clipboard_path},{on_item_path}')
 
     def on_drop(self, evt):
         """
@@ -243,7 +260,7 @@ class TreeFrame(wx.Frame):
         self.SetCursor(wx.Cursor())
         dropped_on = self.tree.GetItemData(evt.GetItem())
         dragged_data = self.tree.GetItemData(self.drag_item)
-        self.command_q.put(('move', f'{dragged_data},{dropped_on}'))
+        self.send_to_logic('move', f'{dragged_data},{dropped_on}')
 
     def on_drag(self, evt):
         """
@@ -309,7 +326,7 @@ class TreeFrame(wx.Frame):
                 elif full_path in self.path_item:
                     notification.show_error(f'"{file_name}" already exists in this directory')
                 else:
-                    self.command_q.put((command, full_path))
+                    self.send_to_logic(command, full_path)
                     break
             else:
                 break
@@ -440,13 +457,13 @@ class TreeFrame(wx.Frame):
 
             file_dialog.Destroy()
             if file_explorer_path_chose:
-                self.command_q.put((text, f'{path},{file_explorer_path_chose}'))
+                self.send_to_logic(text, f'{path},{file_explorer_path_chose}')
 
         elif text == 'paste':
             on_item = self.tree.GetFocusedItem()
             on_item_path = self.tree.GetItemData(on_item)
             if self.on_clipboard_path:
-                self.command_q.put((text, f'{self.on_clipboard_path},{on_item_path}'))
+                self.send_to_logic(text, f'{self.on_clipboard_path},{on_item_path}')
 
         elif text == 'copy':
             on_item = self.tree.GetFocusedItem()
@@ -454,7 +471,7 @@ class TreeFrame(wx.Frame):
             self.on_clipboard_path = on_item_path
 
         else:
-            self.command_q.put((text, path))
+            self.send_to_logic(text, path)
 
     def convert_to_tree(self, dic: dict, father=None):
         """
@@ -506,7 +523,7 @@ class TreeFrame(wx.Frame):
 
         # open file
         else:
-            self.command_q.put(('open', path))
+            self.send_to_logic('open', path)
 
 
 

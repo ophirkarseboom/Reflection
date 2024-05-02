@@ -126,6 +126,7 @@ class MainUserClient:
         :param comm: the client_comm opened with other pc
         :return: None
         """
+
         # start monitoring file
         q = Queue()
         threading.Thread(target=self.monitor_file, args=(file_path, q), daemon=True).start()
@@ -134,6 +135,7 @@ class MainUserClient:
         ls1 = process_handler.get_all_pid(process_name)
         dir_path, _ = FileHandler.split_path_last_part(file_path)
         FileHandler.open_file(file_path)
+        self.refresh_cursor()
         print('ls1:', ls1)
         # wait for file to be added to pid list
         while True:
@@ -250,6 +252,7 @@ class MainUserClient:
 
             else:
                 print('wrong output')
+
 
 
     def move_file(self, file_to_move: str, move_to: str):
@@ -404,7 +407,7 @@ class MainUserClient:
         gets error and sends it to graphic
         :param error: error to show user
         """
-        wx.CallAfter(pub.sendMessage, "error", error=error)
+        self.send_to_graphics('error', {'error': error})
 
     def delete(self, path: str):
         """
@@ -473,8 +476,7 @@ class MainUserClient:
             self.folders[user_path].insert(0, ip)
             new_folders.update(folders_got)
             new_folders[user_path].insert(0, ip)
-            wx.CallAfter(pub.sendMessage, "update_tree", dic=new_folders)
-
+            self.send_to_graphics('update_tree', {'dic': new_folders})
 
     def handle_status_saved_file(self, vars: list):
         """
@@ -531,6 +533,7 @@ class MainUserClient:
         if self.file_handler.is_local(path):
             local = self.file_handler.remove_ip(self.user_name, path)
             FileHandler.open_file(local)
+            self.refresh_cursor()
 
         # if user asked to download local file
         elif path in self.downloads and os.path.isfile(FileHandler.remove_ip(self.user_name, self.downloads[path])):
@@ -568,7 +571,7 @@ class MainUserClient:
         if father_path in self.folders and name in self.folders[father_path]:
             self.folders[father_path].remove(name)
 
-        wx.CallAfter(pub.sendMessage, "delete", path=path)
+        self.send_to_graphics('delete', {'path': path})
 
     def folders_add(self, path, name, typ):
         """
@@ -587,7 +590,7 @@ class MainUserClient:
         else:
             self.folders[path].append(f'{name}.{typ}')
 
-        wx.CallAfter(pub.sendMessage, "create", path=path, name=name, typ=typ)
+        self.send_to_graphics('create', {'path': path, 'name': name, 'typ': typ})
 
     def folders_rename(self, old_path: str, new_name: str):
         """
@@ -608,7 +611,24 @@ class MainUserClient:
             self.folders[folder_path].remove(old_name)
             self.folders[folder_path].append(new_name)
 
-        wx.CallAfter(pub.sendMessage, "rename", old_path=old_path, new_name=new_name)
+        self.send_to_graphics('rename', {'old_path': old_path, 'new_name': new_name})
+        # wx.CallAfter(pub.sendMessage, 'rename', old_path=old_path, new_name=new_name)
+
+    def refresh_cursor(self):
+        """
+        refreshes cursor at graphics
+        """
+        wx.CallAfter(pub.sendMessage, 'cursor')
+
+    def send_to_graphics(self, flag: str, params: dict):
+        """
+        gives graphics a command to do
+        :param flag: the flag of
+        :param params: the variables to pass to the graphics
+        """
+        wx.CallAfter(pub.sendMessage, flag, **params)
+        self.refresh_cursor()
+
     def create(self, path: str, name: str, typ: str):
         """
         gets path and typ, creates it
@@ -664,7 +684,7 @@ class MainUserClient:
         """
         success = vars[0]
         if success == 'ok':
-            wx.CallAfter(pub.sendMessage, 'register_ok')
+            self.send_to_graphics('register_ok', {})
         else:
             self.call_error('username already exists')
 
@@ -686,8 +706,8 @@ class MainUserClient:
 
             # thread that waits for getting file trees
             threading.Thread(target=self.get_file_tree, daemon=True).start()
-            # grpahic
-            wx.CallAfter(pub.sendMessage, 'login')
+            # grpahics
+            self.send_to_graphics('login', {})
 
         else:
             self.call_error('username or password does not exist')

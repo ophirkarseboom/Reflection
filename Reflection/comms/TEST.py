@@ -11,6 +11,7 @@ class MyFrame(wx.Frame):
         ctrl.Play()
         self.Show()
 
+
 if __name__ == '__main__':
     app = wx.App(False)
     frame = MyFrame(None, "GIF Player")
