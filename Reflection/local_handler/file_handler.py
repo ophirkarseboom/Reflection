@@ -188,6 +188,7 @@ class FileHandler:
         """
         gets path and extracts ip out of it
         :param path: path
+        :param username: the username inside the path
         :return: ip in path
         """
         ip = None
@@ -201,7 +202,7 @@ class FileHandler:
         return ip
 
     @staticmethod
-    def remove_ip(username, path: str):
+    def remove_ip(username: str, path: str):
         """
         gets path and removes ip out of it
         :param username: username of user
@@ -243,7 +244,7 @@ class FileHandler:
         return created
 
     @staticmethod
-    def _create_hidden_dir(path):
+    def _create_hidden_dir(path: str):
         """
         gets path for dir and creates it hidden
         :param path: path for dir

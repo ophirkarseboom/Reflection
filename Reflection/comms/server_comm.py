@@ -1,5 +1,4 @@
-import base64
-import os.path
+
 import queue
 import socket
 import threading
@@ -29,7 +28,6 @@ class ServerComm:
         self.is_running = False
         self.receiving_files = []
         self.my_ip = Settings.get_ip()
-        self.mutex = threading.Lock()
         threading.Thread(target=self._main_loop).start()
 
     def _main_loop(self):
@@ -70,7 +68,8 @@ class ServerComm:
                         self.receiving_files.append(current_socket)
 
                         # maybe thread
-                        self._receive_file(current_socket, data)
+                        # self._receive_file(current_socket, data)
+                        threading.Thread(target=self._receive_file, args=(current_socket, data, )).start()
 
                     else:
                         print(f'data: {data}')
@@ -148,7 +147,6 @@ class ServerComm:
         :param from_logic: is called from logic
         :return: None
         """
-        self.mutex.acquire()
         if type(ip).__name__ == 'str' or type(ip).__name__ == 'tuple':
             client = self._find_socket_by_ip(ip)
         else:
@@ -159,7 +157,6 @@ class ServerComm:
         if not from_logic:
             self.rcv_q.put((ip, 'close'))
         self._disconnect_client(client)
-        self.mutex.release()
 
     def _disconnect_client(self, client):
         """

@@ -9,8 +9,6 @@ from Crypto.Random import get_random_bytes
 
 
 class SymmetricalEncryption:
-    p = 9413
-    g = 757
 
     def __init__(self, key=None):
 

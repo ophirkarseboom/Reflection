@@ -6,7 +6,7 @@ from Reflection.protocols import server_protocol as protocol
 from Reflection.encryption import symmetrical_encryption
 from Reflection.local_handler.file_handler import FileHandler
 import os
-import re
+
 
 
 def handle_disconnect(client_ip: str, called_by_server_comm: bool):
@@ -20,7 +20,7 @@ def handle_disconnect(client_ip: str, called_by_server_comm: bool):
     # calls to delete ip to all users related to ip
     for ip in user_comps:
         if client_ip in user_comps[ip]:
-            username = get_key_by_value(username_ips, ip)
+            username = get_key_by_value(username_ip, ip)
             server_comm.send(ip, protocol.pack_status_delete(True, f'{Settings.root}{username}\\{client_ip[0]}'))
 
     if client_ip in ip_mac:
@@ -33,10 +33,10 @@ def handle_disconnect(client_ip: str, called_by_server_comm: bool):
         if client_ip in user_comps[ip]:
             user_comps[ip].remove(client_ip)
 
-    if client_ip in username_ips.values():
-        for key in username_ips.keys():
-            if username_ips[key] == client_ip:
-                del username_ips[key]
+    if client_ip in username_ip.values():
+        for key in username_ip.keys():
+            if username_ip[key] == client_ip:
+                del username_ip[key]
                 break
 
     if not called_by_server_comm:
@@ -46,7 +46,7 @@ def handle_register(ip: str, vars: list):
     """
     gets ip and vars and adds user to db and returns response by protocol
     :param ip: ip
-    :param vars:
+    :param vars: user, password
     :return:
     """
     if len(vars) != 2:
@@ -77,7 +77,7 @@ def handle_sign_in(user_ip: str, vars: list):
 
         macs_worked_on = db.get_macs(user)
         user_comps[user_ip] = [(user_ip[0], 'G')]
-        username_ips[user] = user_ip
+        username_ip[user] = user_ip
 
         # adding to user comps
         for mac in macs_worked_on:
@@ -87,16 +87,9 @@ def handle_sign_in(user_ip: str, vars: list):
                     server_comm.send(ip, protocol.pack_ask_file_Tree(f'{user}'))
 
         # asking file tree from own user mac
-        print('user_ip:', user_ip)
-        print()
         if user_mac not in macs_worked_on:
             server_comm.send((user_ip[0], 'G'), protocol.pack_ask_file_Tree(f'{user}'))
 
-        print(f'user:{user},mac:{user_mac}')
-        print('adding_mac:', db.add_user_mac(user, user_mac))
-        print('ip_mac:', ip_mac)
-        print('user_comps:', user_comps)
-        print('username_ip:', username_ips)
     else:
         server_comm.send(user_ip, protocol.pack_status_login(False))
 
@@ -117,8 +110,8 @@ def handle_got_file_tree(got_ip, vars: list):
     if len(vars) == 1:
         user_to_send = FileHandler.get_user(list(file_tree.keys())[0])
         print('user_to_send:', user_to_send)
-        if user_to_send in username_ips:
-            ip_to_send = username_ips[user_to_send]
+        if user_to_send in username_ip:
+            ip_to_send = username_ip[user_to_send]
             print('to_send:', ip_to_send)
 
         else:
@@ -126,7 +119,7 @@ def handle_got_file_tree(got_ip, vars: list):
             ip_to_send = None
 
         if got_ok and ip_to_send in user_comps and got_ip in user_comps[ip_to_send]:
-            # result = replace_outside_brackets(file_tree, user_to_send, os.path.join(user_to_send, got_ip[0]))
+
             folders_with_ip = {}
 
             # inserting ip to each path in dictionary
@@ -170,13 +163,13 @@ def handle_got_mac(client_ip: str, vars: list):
     ip_mac[client_ip] = mac
     if has_users:
         print('nice')
-        ip_for_mac = [username_ips[user] for user in users_for_mac if user in username_ips]
+        ip_for_mac = [username_ip[user] for user in users_for_mac if user in username_ip]
         for ip in ip_for_mac:
             if ip in user_comps:
                 user_comps[ip].append(client_ip)
 
                 # get user by ip
-                user = get_key_by_value(username_ips, ip)
+                user = get_key_by_value(username_ip, ip)
                 server_comm.send(client_ip, protocol.pack_ask_file_Tree(f'{user}'))
 
     server_comm.send(client_ip, protocol.pack_status_mac(has_users))
@@ -196,7 +189,7 @@ def got_create(got_ip: str, vars: str):
         return
 
     location, typ = vars
-    user_got = get_key_by_value(username_ips, got_ip)
+    user_got = get_key_by_value(username_ip, got_ip)
     ip_to_send = FileHandler.extract_ip(user_got, location)
     ip_to_send = (ip_to_send, 'G')
     location = FileHandler.remove_ip(user_got, location)
@@ -217,7 +210,7 @@ def got_rename(got_ip: str, vars: str):
         return
 
     location, new_name = vars
-    user_got = get_key_by_value(username_ips, got_ip)
+    user_got = get_key_by_value(username_ip, got_ip)
     ip_to_send = FileHandler.extract_ip(user_got, location)
     ip_to_send = (ip_to_send, 'G')
     location = FileHandler.remove_ip(user_got, location)
@@ -237,7 +230,7 @@ def got_move(got_ip: str, vars: str):
         return
 
     move_from, move_to = vars
-    user_got = get_key_by_value(username_ips, got_ip)
+    user_got = get_key_by_value(username_ip, got_ip)
     ip_from = FileHandler.extract_ip(user_got, move_from)
     ip_to_send = (ip_from, 'G')
     server_comm.send(ip_to_send, protocol.pack_do_move(move_from, move_to))
@@ -255,7 +248,7 @@ def got_clone(got_ip: str, vars: str):
         return
 
     copy_from, copy_to = vars
-    user_got = get_key_by_value(username_ips, got_ip)
+    user_got = get_key_by_value(username_ip, got_ip)
     ip_from = FileHandler.extract_ip(user_got, copy_from)
     ip_to_send = (ip_from, 'G')
     server_comm.send(ip_to_send, protocol.pack_do_clone(copy_from, copy_to))
@@ -277,7 +270,7 @@ def handle_status_rename(got_ip: str, vars: str):
     username = location.replace(FileHandler.root, '')
     username = username[:username.index('\\')]
 
-    ip_to_send = username_ips[username]
+    ip_to_send = username_ip[username]
     location = FileHandler.insert_ip(location, username, got_ip[0])
     status = status == 'ok'
     server_comm.send(ip_to_send, protocol.pack_status_rename(status, location, new_name))
@@ -297,7 +290,7 @@ def handle_status_move(got_ip: str, vars: str):
 
     username = FileHandler.get_user(move_from)
 
-    ip_to_send = username_ips[username]
+    ip_to_send = username_ip[username]
     status = status == 'ok'
     server_comm.send(ip_to_send, protocol.pack_status_move(status, move_from, move_to))
 
@@ -316,7 +309,7 @@ def handle_status_clone(got_ip: str, vars: str):
     status, copy_from, copy_to = vars
 
     username = FileHandler.get_user(copy_from)
-    ip_to_send = username_ips[username]
+    ip_to_send = username_ip[username]
     status = status == 'ok'
     server_comm.send(ip_to_send, protocol.pack_status_clone(status, copy_from, copy_to))
 
@@ -337,7 +330,7 @@ def handle_status_create(got_ip: str, vars: str):
     username = username[:username.index('\\')]
     print('user:', username)
 
-    ip_to_send = username_ips[username]
+    ip_to_send = username_ip[username]
     location = FileHandler.insert_ip(location, username, got_ip[0])
     status = status == 'ok'
     server_comm.send(ip_to_send, protocol.pack_status_create(status, location, typ))
@@ -357,18 +350,17 @@ def handle_status_delete(got_ip: str, vars: str):
     username = location.replace(FileHandler.root, '')
     username = username[:username.index('\\')]
 
-    ip_to_send = username_ips[username]
+    ip_to_send = username_ip[username]
     location = FileHandler.insert_ip(location, username, got_ip[0])
     status = status == 'ok'
     server_comm.send(ip_to_send, protocol.pack_status_delete(status, location))
-
-
 
 
 def get_key_by_value(dic: dict, value: str):
     """
     gets value and returns key of value
     :param value: value in dic
+    :param dic: the dictionary to get the key from
     :return: key of value
     """
     return next(filter(lambda item: item[1] == value, dic.items()), None)[0]
@@ -387,7 +379,7 @@ def got_delete(got_ip: str, vars: list):
         return
 
     location = vars[0]
-    user_got = get_key_by_value(username_ips, got_ip)
+    user_got = get_key_by_value(username_ip, got_ip)
     ip_to_send = FileHandler.extract_ip(user_got, location)
     ip_to_send = (ip_to_send, 'G')
     location = FileHandler.remove_ip(user_got, location)
@@ -405,7 +397,7 @@ if __name__ == '__main__':
                 '33': handle_status_create}
     ip_mac = {}
     user_comps = {}
-    username_ips = {}
+    username_ip = {}
     db = db.Db()
     while True:
 

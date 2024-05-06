@@ -1,4 +1,4 @@
-import base64
+
 import queue
 import socket
 import sys
@@ -7,19 +7,18 @@ import time
 import os
 
 
-from Reflection.encryption import asymmetric_encryption
 from Reflection.encryption import symmetrical_encryption
 from Reflection.protocols import general_client_protocol
 from Reflection.protocols import user_client_protocol
 from Reflection.local_handler.file_handler import FileHandler
 from Reflection.settings import Settings
 from Reflection.encryption.asymmetric_encryption import AsymmetricEncryption
-import Reflection.protocols.user_client_protocol as user_client_protocl
+
 
 
 class ClientComm:
 
-    main_server_port = 2000
+    main_server_port = Settings.server_port
     file_receive_opcodes = ('17', '18')
     def __init__(self, server_ip, port, rcv_q, send_len, client_type):
         self.send_len = send_len
@@ -168,13 +167,13 @@ class ClientComm:
         if self.symmetric:
             data = self.symmetric.encrypt(data)
 
-        # try:
-        print(f'data to send: {str(len(data)).zfill(self.send_len).encode() + data}')
-        self.server.send(str(len(data)).zfill(self.send_len).encode() + data)
-        # except Exception as e:
-        #     print('client comm - send:', str(e))
-        #     self.close()
-        #     sys.exit("server is down, try again later")
+        try:
+            print(f'data to send: {str(len(data)).zfill(self.send_len).encode() + data}')
+            self.server.send(str(len(data)).zfill(self.send_len).encode() + data)
+        except Exception as e:
+            print('client comm - send:', str(e))
+            self.close()
+            sys.exit("server is down, try again later")
 
     def send_file(self, header, data):
         """
