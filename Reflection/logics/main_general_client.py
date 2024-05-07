@@ -214,7 +214,7 @@ def move_from_client(got_ip: str, server: ServerComm, vars: list):
     saves file in right position after moved and informing client
     :param got_ip: the ip got the file from
     :param server: the comm
-    :param vars:
+    :param vars: status, move_to, move_from
     """
     print('got_ip:', got_ip)
     if len(vars) != 3:
@@ -292,11 +292,11 @@ def handle_status_mac(client_got: ClientComm, vars: list):
     :param vars: success or failure
     :return: None
     """
-    success = vars[0]
-    if success == 'ok':
+    status = vars[0]
+    if status == 'ok':
         print('sent mac successfully')
     else:
-        print("a user didn't login through this computer")
+        client_got.close()
 
 
 def handle_asked_file_tree(client_got: ClientComm, vars: list):
@@ -325,10 +325,9 @@ if __name__ == '__main__':
     file_server = ServerComm(Settings.pear_port, server_rcv_q, 8)
     
     threading.Thread(target=rcv_comm, args=(client, client_rcv_q,), daemon=True).start()
-    threading.Thread(target=rcv_comm, args=(file_server, server_rcv_q,), daemon=True).start()
 
     # sending main server client's mac
     send_mac()
 
-    while True:
-        pass
+    # waiting for pear to pear action
+    rcv_comm(file_server, server_rcv_q)
