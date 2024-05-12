@@ -17,8 +17,7 @@ from functools import partial
 class MainUserClient:
 
     def __init__(self):
-        self.folders = {}
-
+        self.file_tree = {}
         self.server_rcv_q = Queue()
         self.client = ClientComm(Settings.server_ip, Settings.server_port, self.server_rcv_q, 6, 'U')
         self.user_name = ''
@@ -65,7 +64,7 @@ class MainUserClient:
             while True:
                 if not end_q.empty():
                     break
-                print('nice123')
+
                 try:
                     result = win32file.ReadDirectoryChangesW(
                         directory_handle,
@@ -167,7 +166,7 @@ class MainUserClient:
         :return: None
         """
         while True:
-            print(self.folders)
+            print(self.file_tree)
             command, param_got = q.get()
             print('command:', command, '       param:', param_got)
             if command == 'create file':
@@ -263,23 +262,21 @@ class MainUserClient:
         :return: None
         """
         # if got a file path changing it to the folder
-        if move_to not in self.folders:
+        if move_to not in self.file_tree:
             move_to, _ = FileHandler.split_path_last_part(move_to)
 
         file_dir_path, file_name = FileHandler.split_path_last_part(file_to_move)
 
         # if moving to same dir
-        if move_to == file_dir_path or file_to_move in self.folders:
+        if move_to == file_dir_path or file_to_move in self.file_tree:
             self.call_error('can not move a folder only files')
             return
 
         print('move_to:', move_to)
         print('file_to_move:', file_to_move)
 
-        file_name = FileHandler.build_name_for_file(self.folders, move_to, file_to_move, '(moved)')
+        file_name = FileHandler.build_name_for_file(self.file_tree, move_to, file_to_move, '(moved)')
         new_file_path = str(os.path.join(move_to, file_name))
-
-
 
         if self.file_handler.is_local(move_to) and self.file_handler.is_local(file_to_move):
             # making folders local
@@ -309,11 +306,10 @@ class MainUserClient:
         :return: None
         """
         # if got a file path changing it to the folder
-        if copy_to not in self.folders:
+        if copy_to not in self.file_tree:
             copy_to, _ = FileHandler.split_path_last_part(copy_to)
 
-        file_dir_path, file_name = FileHandler.split_path_last_part(file_to_copy)
-        file_name = FileHandler.build_name_for_file(self.folders, copy_to, file_to_copy, '(copy)')
+        file_name = FileHandler.build_name_for_file(self.file_tree, copy_to, file_to_copy, '(copy)')
         new_file_path = str(os.path.join(copy_to, file_name))
 
         if self.file_handler.is_local(copy_to) and self.file_handler.is_local(file_to_copy):
@@ -391,7 +387,7 @@ class MainUserClient:
         :return: None
         """
         # trying to change computers folder
-        if path in self.folders and '.' in os.path.basename(path):
+        if path in self.file_tree and '.' in os.path.basename(path):
             self.call_error('cannot rename computers directory')
             return
 
@@ -421,7 +417,7 @@ class MainUserClient:
         return: None
         """
         # trying to change computers folder
-        if path in self.folders and '.' in os.path.basename(path):
+        if path in self.file_tree and '.' in os.path.basename(path):
             self.call_error('cannot delete computers directory')
             return
 
@@ -471,14 +467,14 @@ class MainUserClient:
             # gets new folder adds it to folders dict
             folders_got = self.handle_tree.get()
             new_folders[user_path] = [',']
-            self.folders.update(folders_got)
+            self.file_tree.update(folders_got)
 
             # gets ip of computer got from
             ip_path = list(folders_got.keys())[0]
             ip = os.path.basename(ip_path)
 
             # adds ip to folders in path needed
-            self.folders[user_path].insert(0, ip)
+            self.file_tree[user_path].insert(0, ip)
             new_folders.update(folders_got)
             new_folders[user_path].insert(0, ip)
             print('new_folders:', new_folders)
@@ -571,11 +567,11 @@ class MainUserClient:
         :param path: path to delete
         """
         father_path, name = self.file_handler.split_path_last_part(path)
-        if path in self.folders:
-            del self.folders[path]
+        if path in self.file_tree:
+            del self.file_tree[path]
 
-        if father_path in self.folders and name in self.folders[father_path]:
-            self.folders[father_path].remove(name)
+        if father_path in self.file_tree and name in self.file_tree[father_path]:
+            self.file_tree[father_path].remove(name)
 
         self.send_to_graphics('delete', {'path': path})
 
@@ -586,15 +582,14 @@ class MainUserClient:
         :param name: name of file
         :param typ: type of file/folder
         """
-        print(self.folders)
         if path.endswith('\\'):
             path = path[:-1]
         if typ == 'fld':
-            self.folders[f'{path}\\{name}'] = [',']
-            self.folders[path].insert(0, name)
+            self.file_tree[f'{path}\\{name}'] = [',']
+            self.file_tree[path].insert(0, name)
 
         else:
-            self.folders[path].append(f'{name}.{typ}')
+            self.file_tree[path].append(f'{name}.{typ}')
 
         self.send_to_graphics('create', {'path': path, 'name': name, 'typ': typ})
 
@@ -610,12 +605,12 @@ class MainUserClient:
 
         # folder
         if '.' not in new_name:
-            self.folders[new_path] = self.folders.pop(old_path)
+            self.file_tree[new_path] = self.file_tree.pop(old_path)
 
         # file
         else:
-            self.folders[folder_path].remove(old_name)
-            self.folders[folder_path].append(new_name)
+            self.file_tree[folder_path].remove(old_name)
+            self.file_tree[folder_path].append(new_name)
 
         self.send_to_graphics('rename', {'old_path': old_path, 'new_name': new_name})
         # wx.CallAfter(pub.sendMessage, 'rename', old_path=old_path, new_name=new_name)
@@ -667,7 +662,7 @@ class MainUserClient:
             self.folders_add(path, name, typ)
 
         else:
-            print('could not create')
+            self.call_error('could not create object')
 
     def handle_status_delete(self, vars: list):
         """
@@ -680,7 +675,7 @@ class MainUserClient:
             self.folders_remove(location)
 
         else:
-            print('could not register')
+            self.call_error(f'could not delete {os.path.basename(location)}')
 
     def handle_status_register(self, vars):
         """
@@ -706,7 +701,7 @@ class MainUserClient:
 
             self.file_handler = FileHandler(self.user_name)
             user_path = self.file_handler.user_path[:-1]
-            self.folders = {user_path: [',']}
+            self.file_tree = {user_path: [',']}
             self.file_handler.create_root()
             print('user_path:', user_path)
 
