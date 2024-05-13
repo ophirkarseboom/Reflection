@@ -1,6 +1,5 @@
 from queue import Queue
 import threading
-import Reflection.protocols.general_client_protocol as general_client_protocol
 from Reflection.comms.client_comm import ClientComm
 from Reflection.protocols import user_client_protocol as protocol
 from uuid import getnode
@@ -78,7 +77,7 @@ class MainUserClient:
 
                         if action == modified and name_monitored == file_name:
                             print('saved file in monitor')
-                            to_send_path = file_path.replace(Settings.local_path_directory, '', 1)
+                            to_send_path = file_path.replace(Settings.tmp_directory_name, '', 1)
                             self.save_file(file_path, to_send_path)
 
                 except Exception:
@@ -509,7 +508,7 @@ class MainUserClient:
 
             path = vars[1]
             print('path:', path)
-            download_path = path.replace(Settings.local_path_directory, '', 1)
+            download_path = path.replace(Settings.tmp_directory_name, '', 1)
             print('downloaded_path:', download_path)
             print('downloads:', self.downloads)
 
@@ -737,12 +736,9 @@ class MainUserClient:
         :param password: password
         :return: None
         """
-        to_send = protocol.pack_sign_in(self.user_name, password, get_mac_address())
+        to_send = protocol.pack_sign_in(self.user_name, password, Settings.get_mac_address())
         self.client.send(to_send)
 
-def get_mac_address():
-    """ returns  mac address"""
-    return ':'.join(['{:02x}'.format((getnode() >> i) & 0xff) for i in range(0, 8 * 6, 8)][::-1])
 
 
 if __name__ == '__main__':

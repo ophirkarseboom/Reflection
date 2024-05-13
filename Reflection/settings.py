@@ -9,8 +9,8 @@ class Settings:
     root = 'D:\\reflection\\'
     pear_port = 2500
     dir_working_on = os.path.dirname(os.path.realpath(__file__))
-    local_path_directory = 'localChange\\'
-    local_changes_path = f'{root}{local_path_directory}'
+    tmp_directory_name = 'localChange\\'
+    tmp_directory_path = f'{root}{tmp_directory_name}'
     pic_path = os.path.join(dir_working_on, 'graphics\\icons\\')
     icon_path = pic_path + 'icon_black.png'
     @staticmethod

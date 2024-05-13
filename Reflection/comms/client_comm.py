@@ -108,7 +108,7 @@ class ClientComm:
                 path = header.split(',')[1]
                 path, name = FileHandler.split_path_last_part(path)
                 if FileHandler.root in path:
-                    path = path.replace(FileHandler.root, Settings.local_changes_path, 1)
+                    path = path.replace(FileHandler.root, Settings.tmp_directory_path, 1)
                     # creating folder for file
                     FileHandler.create(path, 'fld')
 
