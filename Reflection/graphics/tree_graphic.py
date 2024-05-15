@@ -181,7 +181,6 @@ class TreeFrame(wx.Frame):
             print(name)
             typ_index = name.rfind('.')
             typ = name[typ_index + 1:]
-            name = name[:typ_index]
             pic_name = typ
             if typ in TreeFrame.image_types:
                 pic_name = 'pic'
@@ -260,7 +259,7 @@ class TreeFrame(wx.Frame):
         :param evt: event got
         :return: None
         """
-        self.SetCursor(wx.Cursor())
+        self.refresh_cursor()
         dropped_on = self.tree.GetItemData(evt.GetItem())
         dragged_data = self.tree.GetItemData(self.drag_item)
         self.send_to_logic('move', f'{dragged_data},{dropped_on}')
@@ -414,8 +413,6 @@ class TreeFrame(wx.Frame):
             new_item = self.tree.AppendItem(dir_on, f'{name}.{typ}', data=full_path)
             self.path_item[full_path] = new_item
             self.add_pic(new_item, f'{name}.{typ}', False)
-
-
 
 
     def on_right_click(self, evt):
