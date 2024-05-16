@@ -296,7 +296,7 @@ def handle_status_mac(client_got: ClientComm, vars: list):
     if status == 'ok':
         print('sent mac successfully')
     else:
-        client_got.close()
+        print('no computers with users using this pc')
 
 
 def handle_asked_file_tree(client_got: ClientComm, vars: list):

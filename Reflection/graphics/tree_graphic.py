@@ -1,11 +1,9 @@
-import time
+
 import wx
-brown = wx.Colour(165, 132, 82)
 import os
 from pubsub import pub
 from Reflection import settings
 from queue import Queue
-from Reflection.graphics import notification
 from Reflection.local_handler.file_handler import FileHandler
 from Reflection.settings import Settings
 
@@ -101,12 +99,20 @@ class TreeFrame(wx.Frame):
         pub.subscribe(self.convert_to_tree, "update_tree")
         pub.subscribe(self.add_object, "create")
         pub.subscribe(self.delete_object, "delete")
-        pub.subscribe(notification.show_error, "error")
+        pub.subscribe(self.show_error, "error")
         pub.subscribe(self.rename_object, "rename")
         pub.subscribe(self.refresh_cursor, "cursor")
 
         self.tree.SetBackgroundColour(wx.Colour(30, 30, 30))
         self.Show()
+
+    def show_error(self, error: str):
+        """
+        gets error and tells it to user
+        :param error: the error explanation
+        """
+        wx.MessageBox(error, "Error", wx.OK | wx.ICON_ERROR)
+
 
     def refresh_cursor(self):
         """
@@ -241,7 +247,7 @@ class TreeFrame(wx.Frame):
                 on_item_path = self.tree.GetItemData(on_item)
                 print('copy')
                 if on_item_path in self.folders:
-                    notification.show_error('cannot copy folder')
+                    self.show_error('cannot copy folder')
                 else:
                     self.on_clipboard_path = on_item_path
 
@@ -324,9 +330,9 @@ class TreeFrame(wx.Frame):
                 full_path = os.path.join(path, file_name)
                 print('full_path:', full_path)
                 if not self.valid_input(file_name, is_folder):
-                    notification.show_error(f'name "{file_name}" is not valid')
+                    self.show_error(f'name "{file_name}" is not valid')
                 elif full_path in self.path_item:
-                    notification.show_error(f'"{file_name}" already exists in this directory')
+                    self.show_error(f'"{file_name}" already exists in this directory')
                 else:
                     self.send_to_logic(command, full_path)
                     break

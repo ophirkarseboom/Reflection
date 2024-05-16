@@ -516,6 +516,7 @@ class MainUserClient:
                 local_path = next(filter(lambda item: item[1] == download_path, self.downloads.items()), None)[0]
                 FileHandler.direct_copy_file(path, local_path)
                 del self.downloads[local_path]
+                self.refresh_cursor()
 
             elif os.path.isfile(path):
                 threading.Thread(target=self.visualize_open_file, args=(path, comm), daemon=True).start()
@@ -543,6 +544,7 @@ class MainUserClient:
             print('download to:', path)
             FileHandler.direct_copy_file(download_from_path, path)
             del self.downloads[path]
+            self.refresh_cursor()
 
         # if file is on another computer
         else:

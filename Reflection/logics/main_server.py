@@ -64,7 +64,7 @@ def handle_sign_in(user_ip: str, vars: list):
     :param vars: username, password, mac address
     :return: None
     """
-
+    print('got to sign in')
     if len(vars) != 3:
         handle_disconnect(user_ip, False)
         return
@@ -73,9 +73,11 @@ def handle_sign_in(user_ip: str, vars: list):
     db_pass = db.get_password(user)
     hashed_pass = symmetrical_encryption.SymmetricalEncryption.hash(password)
     if db_pass == hashed_pass:
-        server_comm.send(user_ip, protocol.pack_status_login(True))
 
+        db.add_user_mac(user, user_mac)
+        server_comm.send(user_ip, protocol.pack_status_login(True))
         macs_worked_on = db.get_macs(user)
+        print('macs_worked_on:', macs_worked_on)
         user_comps[user_ip] = [(user_ip[0], 'G')]
         username_ip[user] = user_ip
 
@@ -86,6 +88,7 @@ def handle_sign_in(user_ip: str, vars: list):
                     user_comps[user_ip].append(ip)
                     server_comm.send(ip, protocol.pack_ask_file_Tree(f'{user}'))
 
+        print('user_comps:', user_comps)
         # asking file tree from own user mac
         if user_mac not in macs_worked_on:
             server_comm.send((user_ip[0], 'G'), protocol.pack_ask_file_Tree(f'{user}'))
@@ -160,6 +163,7 @@ def handle_got_mac(client_ip: str, vars: list):
     mac = vars[0]
     users_for_mac = db.get_users(mac)
     has_users = len(users_for_mac) > 0
+    print(f'has users for {mac}:', has_users)
     ip_mac[client_ip] = mac
     if has_users:
         print('nice')
