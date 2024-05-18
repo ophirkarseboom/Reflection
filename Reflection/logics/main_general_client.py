@@ -12,9 +12,6 @@ from Reflection.comms.server_comm import ServerComm
 from queue import Queue
 
 
-
-
-
 def rcv_comm(comm, q):
     """
     gets data from server or clients and calls functions accordingly

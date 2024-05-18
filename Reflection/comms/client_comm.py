@@ -199,7 +199,7 @@ class ClientComm:
 
 if __name__ == '__main__':
     rcv_q = queue.Queue()
-    server = ClientComm('127.0.0.1', 2500, rcv_q, 8)
+    server = ClientComm('127.0.0.1', 2500, rcv_q, 8, 'G')
     server.send('05hi')
     while True:
         if not rcv_q.empty():

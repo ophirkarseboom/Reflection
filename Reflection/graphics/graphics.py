@@ -6,9 +6,6 @@ from pubsub import pub
 from Reflection import settings
 from queue import Queue
 from Reflection.graphics.tree_graphic import TreeFrame
-from Reflection.graphics import notification
-
-brown = wx.Colour(165, 132, 82)
 class MyFrame(wx.Frame):
 
     def __init__(self, logic_q: Queue):
@@ -38,7 +35,7 @@ class MyFrame(wx.Frame):
         self.Show()
 
         self.panel.Show()
-        pub.subscribe(notification.show_error, "error")
+        pub.subscribe(TreeFrame.show_error, "error")
 
 
     def change_panel(self, current: wx.Panel, new_panel: wx.Panel):
@@ -194,7 +191,7 @@ class RegisterPanel(wx.Panel):
         self.username = self.nameField.GetValue()
         self.password = self.passField.GetValue()
         if not self.username or not self.password:
-            notification.show_error('must enter username and password')
+            TreeFrame.show_error('must enter username and password')
         else:
             self.parent.logic_q.put(('register', f'{self.username},{self.password}'))
 
@@ -289,7 +286,7 @@ class LoginPanel(wx.Panel):
         username = self.nameField.GetValue()
         password = self.passField.GetValue()
         if not username or not password:
-            notification.show_error('must enter name and password')
+            TreeFrame.show_error('must enter name and password')
         else:
             self.parent.logic_q.put(('login', f'{username},{password}'))
 

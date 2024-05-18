@@ -54,9 +54,8 @@ class AsymmetricEncryption:
 
 
 if __name__ == '__main__':
-    from encryption import asymmetric_encryption
 
-    encryption = asymmetric_encryption.AsymmetricEncryption()
+    encryption = AsymmetricEncryption()
     msg = 'hello'   # limit 245
     msg_encrypted = encryption.encrypt_msg(msg, encryption.get_public_key())
     print('len', len(msg_encrypted))

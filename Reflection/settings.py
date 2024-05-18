@@ -4,9 +4,10 @@ import socket
 import os
 
 class Settings:
-    server_ip = '192.168.4.94'
+    server_ip = '10.100.102.100'
     server_port = 2000
-    root = 'D:\\reflection\\'
+    root = 'C:'
+    root += '\\reflection\\'
     pear_port = 2500
     dir_working_on = os.path.dirname(os.path.realpath(__file__))
     tmp_directory_name = 'localChange\\'
@@ -29,8 +30,5 @@ class Settings:
         """ returns  mac address"""
         return ':'.join(['{:02x}'.format((getnode() >> i) & 0xff) for i in range(0, 8 * 6, 8)][::-1])
 
-
-if __name__ == '__main__':
-    print(Settings.server_ip)
 
 

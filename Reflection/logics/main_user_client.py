@@ -2,7 +2,6 @@ from queue import Queue
 import threading
 from Reflection.comms.client_comm import ClientComm
 from Reflection.protocols import user_client_protocol as protocol
-from uuid import getnode
 import os
 from Reflection.local_handler.file_handler import FileHandler
 from Reflection.local_handler import process_handler

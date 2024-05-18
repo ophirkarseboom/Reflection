@@ -106,12 +106,6 @@ class TreeFrame(wx.Frame):
         self.tree.SetBackgroundColour(wx.Colour(30, 30, 30))
         self.Show()
 
-    def show_error(self, error: str):
-        """
-        gets error and tells it to user
-        :param error: the error explanation
-        """
-        wx.MessageBox(error, "Error", wx.OK | wx.ICON_ERROR)
 
 
     def refresh_cursor(self):
@@ -169,7 +163,6 @@ class TreeFrame(wx.Frame):
             image = image.Scale(self.image_size, self.image_size, wx.IMAGE_QUALITY_HIGH)
             image = self.image_list.Add(image.ConvertToBitmap())
             self.tree.SetItemImage(item, image, wx.TreeItemIcon_Normal)
-
 
 
 
@@ -539,6 +532,14 @@ class TreeFrame(wx.Frame):
         else:
             self.send_to_logic('open', path)
 
+
+    @staticmethod
+    def show_error(error: str):
+        """
+        gets error and tells it to user
+        :param error: the error explanation
+        """
+        wx.MessageBox(error, "Error", wx.OK | wx.ICON_ERROR)
 
 
 
